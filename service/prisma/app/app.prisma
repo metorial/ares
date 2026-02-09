@@ -1,0 +1,23 @@
+model App {
+  oid BigInt @id
+  id  String @unique
+
+  clientId String @unique
+  slug     String @unique
+
+  hasTerms Boolean @default(true)
+
+  defaultTenantOid BigInt?
+  defaultTenant    Tenant? @relation(fields: [defaultTenantOid], references: [oid], onDelete: SetNull, name: "DefaultTenant")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  tenants                Tenant[]
+  users                  User[]
+  authIntents            AuthIntent[]
+  authAttempts           AuthAttempt[]
+  authDeviceUserSessions AuthDeviceUserSession[]
+  emailDomains           EmailDomain[]
+  userEmails             UserEmail[]
+}
