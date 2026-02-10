@@ -1,5 +1,5 @@
-import { renderWithLoader } from '@metorial/data-hooks';
-import { Button } from '@metorial/ui';
+import { renderWithLoader } from '@metorial-io/data-hooks';
+import { Button } from '@metorial-io/ui';
 import { Table, TextField } from '@radix-ui/themes';
 import { useState } from 'react';
 import { adminsState } from '../../state';
@@ -28,7 +28,7 @@ export let AdminsPage = () => {
           placeholder="Search"
           name="search"
           defaultValue={search}
-        ></TextField.Root>
+        />
       </form>
 
       <Table.Root variant="surface">
@@ -37,28 +37,31 @@ export let AdminsPage = () => {
             <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
 
         <Table.Body>
-          {admins.data.map(invite => (
-            <Table.Row key={invite.id}>
-              <Table.Cell>{invite.name}</Table.Cell>
-              <Table.Cell>{invite.email}</Table.Cell>
-              <Table.Cell>{invite.createdAt.toLocaleDateString('de-at')}</Table.Cell>
+          {admins.data.map((admin: any) => (
+            <Table.Row key={admin.id}>
+              <Table.Cell>{admin.name}</Table.Cell>
+              <Table.Cell>{admin.email}</Table.Cell>
+              <Table.Cell>
+                {new Date(admin.createdAt).toLocaleDateString('de-at')}
+              </Table.Cell>
             </Table.Row>
           ))}
         </Table.Body>
       </Table.Root>
 
-      <Button
-        size="1"
-        style={{ marginTop: 20 }}
-        onClick={() => setAfter(admins.data[admins.data.length - 1]?.id)}
-      >
-        Load More
-      </Button>
+      {admins.data.length > 0 && (
+        <Button
+          size="1"
+          style={{ marginTop: 20 }}
+          onClick={() => setAfter(admins.data[admins.data.length - 1]?.id)}
+        >
+          Load More
+        </Button>
+      )}
     </>
   ));
 };

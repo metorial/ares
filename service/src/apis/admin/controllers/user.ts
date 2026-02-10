@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { userPresenter } from '../../auth/presenters';
+import { adminUserPresenter } from '../presenters';
 import { adminApp } from '../middleware/admin';
 
 export let userController = adminApp.controller({
@@ -35,7 +36,7 @@ export let userController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let user = await adminService.getUser({ userId: input.id });
-      return await userPresenter(user);
+      return await adminUserPresenter(user);
     }),
 
   impersonate: adminApp

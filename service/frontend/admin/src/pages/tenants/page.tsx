@@ -3,9 +3,9 @@ import { Button } from '@metorial-io/ui';
 import { Table, TextField } from '@radix-ui/themes';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { appsState, usersState } from '../../state';
+import { appsState, tenantsState } from '../../state';
 
-export let UsersPage = () => {
+export let TenantsPage = () => {
   let [after, setAfter] = useState<string | undefined>();
   let [search, setSearch] = useState<string | undefined>();
 
@@ -21,7 +21,7 @@ export let UsersPage = () => {
     }
 
     return (
-      <UsersForApp
+      <TenantsForApp
         appId={selectedAppId}
         search={search}
         after={after}
@@ -34,7 +34,7 @@ export let UsersPage = () => {
   });
 };
 
-let UsersForApp = ({
+let TenantsForApp = ({
   appId,
   search,
   after,
@@ -51,9 +51,9 @@ let UsersForApp = ({
   onSearchChange: (s: string) => void;
   onLoadMore: (after: string | undefined) => void;
 }) => {
-  let users = usersState.use({ appId, search, after });
+  let tenants = tenantsState.use({ appId, search, after });
 
-  return renderWithLoader({ users })(({ users }) => (
+  return renderWithLoader({ tenants })(({ tenants }) => (
     <>
       <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
         {apps.length > 1 && (
@@ -89,21 +89,25 @@ let UsersForApp = ({
       <Table.Root variant="surface">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Slug</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
           </Table.Row>
         </Table.Header>
 
         <Table.Body>
-          {users.data.map(user => (
-            <Table.Row key={user.id}>
-              <Table.Cell>{user.name}</Table.Cell>
-              <Table.Cell>{user.email}</Table.Cell>
-              <Table.Cell>{new Date(user.createdAt).toLocaleDateString('de-at')}</Table.Cell>
+          {tenants.data.map((tenant: any) => (
+            <Table.Row key={tenant.id}>
+              <Table.Cell>{tenant.slug}</Table.Cell>
+              <Table.Cell>{tenant.clientId}</Table.Cell>
+              <Table.Cell>{tenant.counts.users}</Table.Cell>
               <Table.Cell>
-                <Link to={`/users/${user.id}`}>
+                {new Date(tenant.createdAt).toLocaleDateString('de-at')}
+              </Table.Cell>
+              <Table.Cell>
+                <Link to={`/tenants/${tenant.id}`}>
                   <Button as="span" size="1">
                     View
                   </Button>
@@ -114,11 +118,11 @@ let UsersForApp = ({
         </Table.Body>
       </Table.Root>
 
-      {users.data.length > 0 && (
+      {tenants.data.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => onLoadMore(users.data[users.data.length - 1]?.id)}
+          onClick={() => onLoadMore(tenants.data[tenants.data.length - 1]?.id)}
         >
           Load More
         </Button>

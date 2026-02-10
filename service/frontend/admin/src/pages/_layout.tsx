@@ -1,18 +1,11 @@
-import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial/layout';
-import { Logo } from '@metorial/ui';
+import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
+import { Logo } from '@metorial-io/ui';
 import { Theme } from '@radix-ui/themes';
 import {
-  RiBriefcaseLine,
-  RiGroup3Line,
-  RiIdCardLine,
-  RiProfileLine,
-  RiServerFill,
-  RiServerLine,
-  RiUser2Line,
-  RiUserCommunityLine,
-  RiUserFollowLine,
-  RiUserLine,
-  RiUserStarLine
+  RiApps2Line,
+  RiGroupLine,
+  RiShieldUserLine,
+  RiUserLine
 } from '@remixicon/react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -22,81 +15,38 @@ export let Layout = () => {
 
   let accountItems = [
     { icon: <RiUserLine />, label: 'Users', to: '/users' },
-    {
-      icon: <RiUserCommunityLine />,
-      label: 'Organizations',
-      to: '/organizations'
-    }
+    { icon: <RiShieldUserLine />, label: 'Admins', to: '/admins' }
   ];
 
-  let managementItems = [
-    { icon: <RiUser2Line />, label: 'Admins', to: '/admins' },
-    { icon: <RiUser2Line />, label: 'Plans', to: '/plans' },
-    { icon: <RiUserStarLine />, label: 'Handoff', to: '/handoff' },
-    { icon: <RiUserStarLine />, label: 'Plan Campaigns', to: '/plan-campaigns' }
+  let configItems = [
+    { icon: <RiApps2Line />, label: 'Apps', to: '/apps' },
+    { icon: <RiGroupLine />, label: 'Tenants', to: '/tenants' }
   ];
 
-  let authItems = [
-    { icon: <RiUserFollowLine />, label: 'Invites', to: '/invites' },
-    { icon: <RiIdCardLine />, label: 'Auth Config', to: '/auth-config' }
-  ];
-
-  let enterpriseItems = [{ icon: <RiBriefcaseLine />, label: 'Companies', to: '/companies' }];
-
-  let communityItems = [
-    { icon: <RiServerLine />, label: 'Server Listings', to: '/server-listings' },
-    { icon: <RiProfileLine />, label: 'Profiles', to: '/profiles' },
-    { icon: <RiGroup3Line />, label: 'Server Collections', to: '/server-collections' },
-    { icon: <RiServerFill />, label: 'Server Sync', to: '/server-syncs' },
-    { icon: <RiServerFill />, label: 'Deployment Sync', to: '/server-deployment-syncs' }
-  ];
-
-  let items = [
-    ...accountItems,
-    ...managementItems,
-    ...authItems,
-    ...enterpriseItems,
-    ...communityItems
-  ];
+  let items = [...accountItems, ...configItems];
 
   let currentItem = items.find(i => pathname.startsWith(i.to));
 
   return (
-    <Theme
-      style={{
-        background: '#efefff'
-      }}
-    >
+    <Theme style={{ background: '#efefff' }}>
       <LargePaneLayout Nav={AdminNav}>
         <SidebarPane
-          id="account"
+          id="admin"
           groups={[
             {
               label: 'Account',
               items: accountItems
             },
             {
-              label: 'Management',
-              items: managementItems
-            },
-            {
-              label: 'Auth',
-              items: authItems
-            },
-            {
-              label: 'Enterprise',
-              items: enterpriseItems
-            },
-            {
-              label: 'Community',
-              items: communityItems
+              label: 'Configuration',
+              items: configItems
             }
           ]}
         >
           <ExtraHeaderLayout
             header={
               <div style={{ fontWeight: 'bold' }}>
-                {currentItem?.label ?? 'Metorial Admin'}
+                {currentItem?.label ?? 'Ares Admin'}
               </div>
             }
           >
@@ -142,16 +92,11 @@ let LogoPart = styled(Part)`
 export let AdminNav = () => {
   return (
     <Wrapper>
-      <Inner
-        style={{
-          gridTemplateColumns: '1fr  1fr'
-        }}
-      >
+      <Inner style={{ gridTemplateColumns: '1fr 1fr' }}>
         <LogoPart>
           <Logo size={30} />
-
           <h1>
-            <span>Metorial Admin</span>
+            <span>Ares Admin</span>
           </h1>
         </LogoPart>
       </Inner>

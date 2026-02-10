@@ -1,13 +1,8 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-frontend-config';
-import { useForm, useMutation } from '@metorial/data-hooks';
-import { Button, Input, Or, Spacer } from '@metorial/ui';
-import { useEffect } from 'react';
-import { bootState } from '../state';
+import { useForm, useMutation } from '@metorial-io/data-hooks';
+import { Button, Input, Or, Spacer } from '@metorial-io/ui';
 import { adminClient } from '../state/client';
 
 export let LoginPage = () => {
-  let boot = bootState.use({});
-
   let mutation = useMutation(adminClient.authentication.login);
 
   let form = useForm({
@@ -26,27 +21,7 @@ export let LoginPage = () => {
     }
   });
 
-  useEffect(() => {
-    if (boot.data?.method != 'google') return;
-
-    window.location.replace(
-      `${new URL(getFederationConfig().urls.apis.admin).origin}/auth/google?redirect_url=${encodeURIComponent(
-        `${window.location.origin}/users`
-      )}`
-    );
-  }, [boot.data]);
-
-  useEffect(() => {
-    if (boot.data?.method != 'sso') return;
-
-    window.location.replace(
-      `${new URL(getFederationConfig().urls.apis.admin).origin}/auth/sso?redirect_url=${encodeURIComponent(
-        `${window.location.origin}/users`
-      )}`
-    );
-  }, [boot.data]);
-
-  if (import.meta.env.PROD && boot.data?.method != 'password') return null;
+  let googleAuthUrl = `/auth/google?redirect_url=${encodeURIComponent(`${window.location.origin}/users`)}`;
 
   return (
     <div
@@ -57,55 +32,18 @@ export let LoginPage = () => {
         height: '100vh'
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {boot.data?.method == 'google' && (
-          <>
-            <div>
-              <a
-                href={`${new URL(getFederationConfig().urls.apis.admin).origin}/auth/google?redirect_url=${encodeURIComponent(
-                  `${window.location.origin}/users`
-                )}`}
-              >
-                <Button as="span" disabled={mutation.isLoading}>
-                  Login with Google
-                </Button>
-              </a>
-            </div>
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <div>
+          <a href={googleAuthUrl}>
+            <Button as="span" disabled={mutation.isLoading}>
+              Login with Google
+            </Button>
+          </a>
+        </div>
 
-            <Spacer height={25} />
-
-            <Or />
-
-            <Spacer height={25} />
-          </>
-        )}
-
-        {boot.data?.method == 'sso' && (
-          <>
-            <div>
-              <a
-                href={`${new URL(getFederationConfig().urls.apis.admin).origin}/auth/sso?redirect_url=${encodeURIComponent(
-                  `${window.location.origin}/users`
-                )}`}
-              >
-                <Button as="span" disabled={mutation.isLoading}>
-                  Login with SSO
-                </Button>
-              </a>
-            </div>
-
-            <Spacer height={25} />
-
-            <Or />
-
-            <Spacer height={25} />
-          </>
-        )}
+        <Spacer height={25} />
+        <Or />
+        <Spacer height={25} />
 
         <form onSubmit={form.handleSubmit} style={{ width: 300 }}>
           <Input {...form.getFieldProps('email')} label="Email" type="email" />
