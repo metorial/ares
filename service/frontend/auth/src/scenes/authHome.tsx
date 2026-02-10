@@ -181,10 +181,10 @@ export let AuthHomeScene = ({
       </AuthLayout>
     );
 
-  let options = auth.data?.options.map(o => o.type) ?? [];
-  let hasEmailOption = options.includes('email');
-  let hasSsoOption = options.includes('sso');
-  let hasOAuthOptions = options.some(o => o.startsWith('oauth.'));
+  let options = auth.data?.options ?? [];
+  let hasEmailOption = options.some(o => o.type === 'email');
+  let hasOAuthOptions = options.some(o => o.type.startsWith('oauth.'));
+  let ssoOptions = options.filter(o => o.type.startsWith('sso.'));
 
   let lines: React.ReactNode[] = [];
 
@@ -246,14 +246,14 @@ export let AuthHomeScene = ({
       type: string;
     }[] = [];
 
-    if (options.includes('oauth.google')) {
+    if (options.some(o => o.type === 'oauth.google')) {
       oauthProviders.push({
         icon: <GoogleLogo />,
         type: 'google'
       });
     }
 
-    if (options.includes('oauth.github')) {
+    if (options.some(o => o.type === 'oauth.github')) {
       oauthProviders.push({
         icon: <GithubLogo theme="light" />,
         type: 'github'
@@ -291,28 +291,38 @@ export let AuthHomeScene = ({
     );
   }
 
-  if (hasSsoOption) {
+  if (ssoOptions.length > 0) {
     lines.push(
       <>
-        {lines.length > 0 && <Spacer height={10} />}
+        {ssoOptions.map((option, i) => {
+          let ssoTenantId = option.type.replace('sso.', '');
+          let name = option.name ?? 'Single Sign-On';
 
-        <Button
-          onClick={() => {
-            setLoadingSource('sso');
-            startAuthentication.mutate({
-              type: 'sso',
-              clientId,
-              redirectUrl: nextUrl
-            });
-          }}
-          size="2"
-          fullWidth
-          variant="outline"
-          loading={startAuthentication.isLoading && loadingSource == 'sso'}
-          disabled={startAuthentication.isLoading}
-        >
-          Single Sign-On
-        </Button>
+          return (
+            <Fragment key={option.type}>
+              {i > 0 && <Spacer height={10} />}
+
+              <Button
+                onClick={() => {
+                  setLoadingSource(option.type);
+                  startAuthentication.mutate({
+                    type: 'sso',
+                    clientId,
+                    ssoTenantId,
+                    redirectUrl: nextUrl
+                  });
+                }}
+                size="2"
+                fullWidth
+                variant="outline"
+                loading={startAuthentication.isLoading && loadingSource == option.type}
+                disabled={startAuthentication.isLoading}
+              >
+                {name}
+              </Button>
+            </Fragment>
+          );
+        })}
       </>
     );
   }

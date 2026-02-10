@@ -33,13 +33,11 @@ let Footer = styled('footer')`
 let Wrapper = styled.div`
   background: #dcc425;
 
-  /* background-color: #f9f1bd;
-  opacity: 0.8;
-  background:
-    linear-gradient(135deg, #dcc42555 25%, transparent 25%) -40px 0/ 80px 80px,
-    linear-gradient(225deg, #dcc425 25%, transparent 25%) -40px 0/ 80px 80px,
-    linear-gradient(315deg, #dcc42555 25%, transparent 25%) 0px 0/ 80px 80px,
-    linear-gradient(45deg, #dcc425 25%, #f9f1bd 25%) 0px 0/ 80px 80px; */
+  /* background:
+    linear-gradient(135deg, #0099ff 25%, transparent 25%) -80px 0/ 160px 160px,
+    linear-gradient(225deg, #dcc425 25%, transparent 25%) -80px 0/ 160px 160px,
+    linear-gradient(315deg, #0099ff 25%, transparent 25%) 0px 0/ 160px 160px,
+    linear-gradient(45deg, #dcc425 25%, #f9f1bd 25%) 0px 0/ 160px 160px; */
 
   height: 100dvh;
   display: flex;
@@ -128,7 +126,7 @@ export let AuthLayout = ({ children }: { children: React.ReactNode }) => {
               <img src={bubbles} style={{ width: '100%', maxWidth: 350 }} />
             </Side> */}
 
-          <Side style={{ background: 'rgba(255, 255, 255, 0.9)' }} className="padded">
+          <Side style={{ background: 'rgba(255, 255, 255, 1)' }} className="padded">
             {/* <Title as="h1" size="5" weight="bold">
                 {main.title}
               </Title>

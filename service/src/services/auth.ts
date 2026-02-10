@@ -30,7 +30,7 @@ import { userService } from './user';
 
 class AuthServiceImpl {
   async getAuthOptions(d: { app: App }) {
-    let options: { type: string }[] = [{ type: 'email' }];
+    let options: { type: string; name?: string }[] = [{ type: 'email' }];
 
     // Query database for enabled OAuth providers for this app
     let oauthProviders = await db.appOAuthProvider.findMany({
@@ -42,6 +42,18 @@ class AuthServiceImpl {
 
     for (let provider of oauthProviders) {
       options.push({ type: `oauth.${provider.provider}` });
+    }
+
+    // Query SSO tenants with completed status for this app
+    let ssoTenants = await db.ssoTenant.findMany({
+      where: {
+        appOid: d.app.oid,
+        status: 'completed'
+      }
+    });
+
+    for (let tenant of ssoTenants) {
+      options.push({ type: `sso.${tenant.id}`, name: tenant.name });
     }
 
     return {
@@ -321,6 +333,101 @@ class AuthServiceImpl {
       type: 'auth_intent' as const,
       authIntent
     };
+  }
+
+  async authWithSso(d: {
+    ssoUser: { email: string; firstName: string; lastName: string };
+    ssoConnectionId: string;
+    ssoUid: string;
+    context: Context;
+    redirectUrl: string;
+    device: AuthDevice;
+    app: App;
+  }) {
+    let providerIdentifier = `sso.${d.ssoConnectionId}`;
+
+    // Get or create user identity provider
+    let identityProvider = await db.userIdentityProvider.findFirst({
+      where: { identifier: providerIdentifier }
+    });
+    if (!identityProvider) {
+      identityProvider = await db.userIdentityProvider.create({
+        data: {
+          ...getId('userIdentityProvider'),
+          identifier: providerIdentifier,
+          name: `SSO ${d.ssoConnectionId}`
+        }
+      });
+    }
+
+    // Find or create user identity
+    let userIdentity = await db.userIdentity.findFirst({
+      where: {
+        providerOid: identityProvider.oid,
+        uid: d.ssoUid
+      }
+    });
+
+    if (userIdentity) {
+      // Update existing identity with latest profile data
+      userIdentity = await db.userIdentity.update({
+        where: { oid: userIdentity.oid },
+        data: {
+          email: d.ssoUser.email,
+          firstName: d.ssoUser.firstName,
+          lastName: d.ssoUser.lastName,
+          name: `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim()
+        }
+      });
+    } else {
+      userIdentity = await db.userIdentity.create({
+        data: {
+          ...getId('userIdentity'),
+          uid: d.ssoUid,
+          email: d.ssoUser.email,
+          firstName: d.ssoUser.firstName,
+          lastName: d.ssoUser.lastName,
+          name: `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim(),
+          photoUrl: null,
+          providerOid: identityProvider.oid,
+          userOid: null
+        }
+      });
+    }
+
+    // Link identity to user if not already linked
+    if (!userIdentity.userOid) {
+      let user = await userService.findByEmailSafe({
+        email: d.ssoUser.email,
+        app: d.app
+      });
+
+      if (!user) {
+        user = await userService.createUser({
+          email: d.ssoUser.email,
+          firstName: d.ssoUser.firstName,
+          lastName: d.ssoUser.lastName,
+          acceptedTerms: true,
+          type: 'standard_user',
+          context: d.context,
+          app: d.app
+        });
+      }
+
+      userIdentity = await db.userIdentity.update({
+        where: { oid: userIdentity.oid },
+        data: { userOid: user.oid }
+      });
+    }
+
+    let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
+    if (!user) throw new Error('User not found after SSO identity linking');
+
+    return await this.createAuthAttempt({
+      user,
+      device: d.device,
+      redirectUrl: d.redirectUrl
+    });
   }
 
   async createAuthIntentStep(

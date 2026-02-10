@@ -92,6 +92,7 @@ export let authenticationController = publicApp.controller({
         v.object({
           type: v.literal('sso'),
           clientId: v.string(),
+          ssoTenantId: v.string(),
           redirectUrl: redirectUrlValidator
         }),
         v.object({
@@ -110,17 +111,6 @@ export let authenticationController = publicApp.controller({
     )
     .do(async ({ context, device, input }) => {
       let app = await resolveApp(input.clientId);
-
-      let getSSO = async (p?: { email?: string }) => ({
-        type: 'hook' as const,
-        url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
-          type: 'sso',
-          appClientId: app.clientId,
-          deviceId: device.id,
-          redirectUrl: input.redirectUrl,
-          email: p?.email
-        })}`
-      });
 
       if (input.type == 'email' || input.type == 'session') {
         let email = input.type == 'email' ? input.email : undefined;
@@ -186,7 +176,16 @@ export let authenticationController = publicApp.controller({
       }
 
       if (input.type == 'sso') {
-        return await getSSO();
+        return {
+          type: 'hook' as const,
+          url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
+            type: 'sso',
+            appClientId: app.clientId,
+            deviceId: device.id,
+            ssoTenantId: input.ssoTenantId,
+            redirectUrl: input.redirectUrl
+          })}`
+        };
       }
 
       if (input.type == 'internal') {

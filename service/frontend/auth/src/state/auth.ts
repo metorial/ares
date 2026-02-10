@@ -42,6 +42,7 @@ export let authState = createLoader({
         | {
             type: 'sso';
             clientId: string;
+            ssoTenantId: string;
             redirectUrl: string;
           },
       { input, output }
