@@ -24,6 +24,7 @@ model App {
   userEmails             UserEmail[]
   oauthProviders         AppOAuthProvider[]
   surfaces               AppSurface[]
+  ssoTenants             SsoTenant[]
 }
 
 model AppSurface {

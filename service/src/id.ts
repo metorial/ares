@@ -30,6 +30,16 @@ export let ID = createIdGenerator({
 
   emailDomain: idType.sorted('emd_'),
 
+  ssoTenant: idType.sorted('stn_'),
+  ssoTenant_clientId: idType.key('sso_tenant_'),
+  ssoConnection: idType.sorted('scn_'),
+  ssoConnectionSetup: idType.sorted('scs_'),
+  ssoConnectionSetup_clientSecret: idType.key('sso_setup_'),
+  ssoUser: idType.sorted('ssu_'),
+  ssoUserProfile: idType.sorted('sup_'),
+  ssoAuth: idType.sorted('sau_'),
+  ssoAuth_clientSecret: idType.key('sso_auth_'),
+
   sender: idType.sorted('ssn_')
 });
 

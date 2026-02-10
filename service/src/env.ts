@@ -36,6 +36,12 @@ export let env = createValidatedEnv({
     ADMIN_GOOGLE_REDIRECT_URI: v.optional(v.string())
   },
 
+  sso: {
+    SSO_SERVICE_HOST: v.string(),
+    SAML_AUDIENCE: v.string(),
+    SSO_MONGO_URL: v.string()
+  },
+
   keys: {
     AUTH_TICKET_SECRET: v.string()
   }

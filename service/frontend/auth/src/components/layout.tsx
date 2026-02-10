@@ -2,15 +2,14 @@ import { theme } from '@metorial-io/ui';
 import React from 'react';
 import { styled } from 'styled-components';
 // import astronaut from './astronaut_waving1.webp';
-import bg from './bg.webp';
 
 let Footer = styled('footer')`
   margin: 20px;
 
   p {
     font-size: 12px;
-    color: ${theme.colors.gray200};
-    text-shadow: 0 0 4px rgba(0, 0, 0, 1);
+    color: ${theme.colors.gray600};
+    /* text-shadow: 0 0 4px rgba(0, 0, 0, 0.2); */
     font-weight: 600;
 
     a {
@@ -18,21 +17,30 @@ let Footer = styled('footer')`
       text-decoration: underline;
     }
   }
+
+  @media (min-width: 800px) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 600px;
+    display: flex;
+    justify-content: center;
+    text-wrap: balance;
+    text-align: center;
+  }
 `;
 
 let Wrapper = styled.div`
-  /* background-color: hsla(321, 100%, 98%, 1);
-  background-image:
-    radial-gradient(at 37% 72%, hsla(26, 60%, 66%, 1) 0px, transparent 50%),
-    radial-gradient(at 82% 63%, hsla(193, 100%, 83%, 1) 0px, transparent 50%),
-    radial-gradient(at 9% 14%, hsla(304, 38%, 68%, 1) 0px, transparent 50%);
-  background-size: cover;
-  background-position: center; */
-  background-image: url(${bg});
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background: #dcc425;
+
+  /* background-color: #f9f1bd;
+  opacity: 0.8;
+  background:
+    linear-gradient(135deg, #dcc42555 25%, transparent 25%) -40px 0/ 80px 80px,
+    linear-gradient(225deg, #dcc425 25%, transparent 25%) -40px 0/ 80px 80px,
+    linear-gradient(315deg, #dcc42555 25%, transparent 25%) 0px 0/ 80px 80px,
+    linear-gradient(45deg, #dcc425 25%, #f9f1bd 25%) 0px 0/ 80px 80px; */
+
   height: 100dvh;
   display: flex;
   align-items: center;
@@ -41,13 +49,8 @@ let Wrapper = styled.div`
 `;
 
 let Box = styled.div`
-  max-width: 70dvw;
-  max-height: 70dvh;
-  width: 600px;
-  height: 700px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.5);
   backdrop-filter: blur(15px);
   overflow: auto;
   /* padding: 50px; */
@@ -60,6 +63,19 @@ let Box = styled.div`
     max-width: unset;
     max-height: unset;
     padding: 20px;
+    border-radius: 10px;
+    max-width: 70dvw;
+    max-height: 70dvh;
+    width: 600px;
+    height: 700px;
+  }
+
+  @media (min-width: 800px) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 600px;
   }
 
   @media (max-width: 1000px) {
