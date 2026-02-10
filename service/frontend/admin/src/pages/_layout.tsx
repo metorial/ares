@@ -1,12 +1,7 @@
 import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
 import { Logo } from '@metorial-io/ui';
 import { Theme } from '@radix-ui/themes';
-import {
-  RiApps2Line,
-  RiGroupLine,
-  RiShieldUserLine,
-  RiUserLine
-} from '@remixicon/react';
+import { RiApps2Line, RiGroupLine, RiShieldUserLine, RiUserLine } from '@remixicon/react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -45,9 +40,7 @@ export let Layout = () => {
         >
           <ExtraHeaderLayout
             header={
-              <div style={{ fontWeight: 'bold' }}>
-                {currentItem?.label ?? 'Ares Admin'}
-              </div>
+              <div style={{ fontWeight: 'bold' }}>{currentItem?.label ?? 'Metorial Auth'}</div>
             }
           >
             <div style={{ padding: 20 }}>
@@ -96,7 +89,7 @@ export let AdminNav = () => {
         <LogoPart>
           <Logo size={30} />
           <h1>
-            <span>Ares Admin</span>
+            <span>Metorial Auth</span>
           </h1>
         </LogoPart>
       </Inner>

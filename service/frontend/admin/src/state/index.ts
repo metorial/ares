@@ -105,6 +105,16 @@ export let tenantState = createLoader({
   mutators: {}
 });
 
+export let oauthProvidersState = createLoader({
+  name: 'oauthProviders',
+  fetch: (d: { appId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.oauthProvider.list({ appId: d.appId })
+    );
+  },
+  mutators: {}
+});
+
 export let ssoTenantsState = createLoader({
   name: 'ssoTenants',
   fetch: (d: { appId: string }) => {

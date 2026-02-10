@@ -3,6 +3,7 @@ import { publicApp } from '../middleware/admin';
 import { adminController } from './admin';
 import { appController } from './app';
 import { authenticationController } from './auth';
+import { oauthProviderController } from './oauthProvider';
 import { ssoController } from './sso';
 import { tenantController } from './tenant';
 import { userController } from './user';
@@ -13,7 +14,8 @@ let rootController = publicApp.controller({
   admin: adminController,
   app: appController,
   tenant: tenantController,
-  sso: ssoController
+  sso: ssoController,
+  oauthProvider: oauthProviderController
 });
 
 export let adminRPC = createServer({})(rootController);
