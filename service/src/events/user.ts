@@ -1,9 +1,9 @@
-import type { EnterpriseUser } from '@metorial-enterprise/federation-data';
-import { EventObject, eventObjectAction } from '@metorial/event';
+import { EventObject, eventObjectAction } from '@lowerdeck/event';
+import type { User } from '../../prisma/generated/client';
 
-let NAME = 'fed/user';
+let NAME = 'ares/user';
 
-export let userEventObject = eventObjectAction<EnterpriseUser>({
+export let userEventObject = eventObjectAction<User>({
   type: NAME
 });
 

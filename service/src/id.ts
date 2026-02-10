@@ -2,15 +2,30 @@ import { createIdGenerator, idType } from '@lowerdeck/id';
 import { Snowflake } from '@lowerdeck/snowflake';
 
 export let ID = createIdGenerator({
-  tenant: idType.sorted('stn_'),
-  sender: idType.sorted('ssn_'),
+  app: idType.sorted('app_'),
+  tenant: idType.sorted('atn_'),
 
-  eventDestination: idType.sorted('sed_'),
-  event: idType.sorted('sev_'),
-  eventDestinationWebhook: idType.sorted('sdw_'),
-  eventDeliveryIntent: idType.sorted('sdi_'),
-  eventDeliveryAttempt: idType.sorted('sda_'),
-  eventDestinationInstance: idType.sorted('sei_')
+  authIntent: idType.sorted('ain_'),
+  authIntentStep: idType.sorted('ast_'),
+  authIntentCode: idType.sorted('aic_'),
+  authIntentVerificationAttempt: idType.sorted('ava_'),
+  authAttempt: idType.sorted('aat_'),
+  authDevice: idType.sorted('adv_'),
+  authDeviceUserSession: idType.sorted('ads_'),
+
+  user: idType.sorted('usr_'),
+  userEmail: idType.sorted('ume_'),
+  userEmailVerification: idType.sorted('uev_'),
+  userIdentity: idType.sorted('uid_'),
+  userImpersonation: idType.sorted('uim_'),
+
+  admin: idType.sorted('adm_'),
+  adminSession: idType.sorted('asm_'),
+
+  oauthProvider: idType.sorted('oap_'),
+  userIdentityProvider: idType.sorted('uip_'),
+
+  sender: idType.sorted('ssn_')
 });
 
 let workerIdBits = 12;

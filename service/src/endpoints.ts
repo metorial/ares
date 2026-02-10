@@ -1,11 +1,21 @@
 import { redis } from 'bun';
-import { AresApi } from './controllers';
+import { authApi } from './apis/auth';
 import { db } from './db';
 
 let server = Bun.serve({
-  fetch: AresApi,
+  fetch: authApi,
   port: 52050
 });
+
+// let server = Bun.serve({
+//   fetch: adminApi,
+//   port: 52121
+// });
+
+// let server = Bun.serve({
+//   fetch: controllerApi,
+//   port: 52125
+// });
 
 console.log(`Service running on http://localhost:${server.port}`);
 
