@@ -37,11 +37,7 @@ class AccessGroupServiceImpl {
     });
   }
 
-  async create(d: {
-    appOid: bigint;
-    name: string;
-    rules: { type: string; value: string }[];
-  }) {
+  async create(d: { appOid: bigint; name: string; rules: { type: string; value: string }[] }) {
     return await db.accessGroup.create({
       data: {
         ...getId('accessGroup'),
@@ -216,7 +212,11 @@ class AccessGroupServiceImpl {
     });
     if (!accessGroup) return false;
 
-    return this._checkRules({ user: d.user, rules: accessGroup.rules, appOid: accessGroup.appOid });
+    return this._checkRules({
+      user: d.user,
+      rules: accessGroup.rules,
+      appOid: accessGroup.appOid
+    });
   }
 
   async checkAccessByOid(d: { user: User; accessGroupOid: bigint }): Promise<boolean> {
@@ -226,7 +226,11 @@ class AccessGroupServiceImpl {
     });
     if (!accessGroup) return false;
 
-    return this._checkRules({ user: d.user, rules: accessGroup.rules, appOid: accessGroup.appOid });
+    return this._checkRules({
+      user: d.user,
+      rules: accessGroup.rules,
+      appOid: accessGroup.appOid
+    });
   }
 
   private async _checkRules(d: {

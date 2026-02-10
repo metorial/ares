@@ -125,7 +125,9 @@ export let authHooksApp = createHono()
 
     let tenant = await ssoService.getTenantById({ tenantId: ticket.ssoTenantId });
     if (tenant.appOid !== app.oid) {
-      throw new ServiceError(badRequestError({ message: 'SSO tenant does not belong to this app' }));
+      throw new ServiceError(
+        badRequestError({ message: 'SSO tenant does not belong to this app' })
+      );
     }
 
     let ssoAuth = await ssoService.createAuth({

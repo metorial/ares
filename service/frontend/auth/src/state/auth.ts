@@ -19,7 +19,7 @@ export let authState = createLoader({
             clientId: string;
             email: string;
             redirectUrl: string;
-            captchaToken: string;
+            captchaToken?: string;
           }
         | {
             type: 'oauth';

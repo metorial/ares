@@ -68,9 +68,11 @@ export let AuthHomeScene = ({
       setLoadingSource('email');
 
       let nextCaptchaToken = captchaTokenRef.current;
-      while (!nextCaptchaToken) {
-        await delay(50);
-        nextCaptchaToken = captchaTokenRef.current;
+      if (auth.data?.captcha) {
+        while (!nextCaptchaToken) {
+          await delay(50);
+          nextCaptchaToken = captchaTokenRef.current;
+        }
       }
 
       let [res] = await startAuthentication.mutate({
@@ -146,10 +148,10 @@ export let AuthHomeScene = ({
 
   let captcha = (
     <>
-      {auth.data?.captcha.siteKey && (
+      {auth.data?.captcha?.siteKey && (
         <Turnstile
           key={captchaKey}
-          siteKey={auth.data?.captcha.siteKey}
+          siteKey={auth.data.captcha.siteKey}
           options={{
             size: 'invisible'
           }}

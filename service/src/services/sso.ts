@@ -1,12 +1,6 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
-import type {
-  App,
-  SsoAuth,
-  SsoConnection,
-  SsoConnectionSetup,
-  SsoTenant
-} from '../../prisma/generated/client';
+import type { App, SsoConnection, SsoTenant } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, ID } from '../id';
 import { jackson } from '../lib/jackson';
@@ -72,9 +66,7 @@ class SsoServiceImpl {
       name: string;
       metadata?: Record<string, any>;
       provider: string;
-      samlMetadata:
-        | { type: 'xml'; payload: string }
-        | { type: 'url'; url: string };
+      samlMetadata: { type: 'xml'; payload: string } | { type: 'url'; url: string };
     };
   }) {
     let con = await jackson.apiController.createSAMLConnection({
@@ -85,8 +77,7 @@ class SsoServiceImpl {
       defaultRedirectUrl: jackson.defaultRedirectUrl.saml,
       rawMetadata:
         d.input.samlMetadata.type === 'xml' ? d.input.samlMetadata.payload : undefined!,
-      metadataUrl:
-        d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
+      metadataUrl: d.input.samlMetadata.type === 'url' ? d.input.samlMetadata.url : undefined
     });
 
     if (d.tenant.status == 'pending') {
@@ -174,10 +165,7 @@ class SsoServiceImpl {
 
   // ─── Setup ───
 
-  async createSetup(d: {
-    tenant: SsoTenant;
-    input: { redirectUri: string };
-  }) {
+  async createSetup(d: { tenant: SsoTenant; input: { redirectUri: string } }) {
     return await db.ssoConnectionSetup.create({
       data: {
         ...getId('ssoConnectionSetup'),

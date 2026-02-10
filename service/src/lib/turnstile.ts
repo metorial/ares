@@ -3,9 +3,14 @@ import { getSentry } from '@lowerdeck/sentry';
 let Sentry = getSentry();
 
 export class TurnstileVerifier {
-  constructor(private secretKey: string) {}
+  constructor(private secretKey: string | undefined) {}
+
+  get enabled() {
+    return !!this.secretKey;
+  }
 
   async verify({ token }: { token: string }) {
+    if (!this.secretKey) return true;
     if (process.env.NODE_ENV === 'development') return true;
 
     try {
@@ -33,4 +38,6 @@ export class TurnstileVerifier {
   }
 }
 
-export let turnstileVerifier = new TurnstileVerifier(process.env.TURNSTILE_SECRET_KEY || '');
+export let turnstileVerifier = new TurnstileVerifier(
+  process.env.TURNSTILE_SECRET_KEY || undefined
+);

@@ -20,8 +20,8 @@ export let env = createValidatedEnv({
   },
 
   turnstile: {
-    TURNSTILE_SITE_KEY: v.string(),
-    TURNSTILE_SECRET_KEY: v.string()
+    TURNSTILE_SITE_KEY: v.optional(v.string()),
+    TURNSTILE_SECRET_KEY: v.optional(v.string())
   },
 
   admin: {

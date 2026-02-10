@@ -30,7 +30,9 @@ let INITIAL_ADMIN_PASSWORD = 'admin123';
       update: {}
     });
 
-    console.log(`[InitialAdmin] Created initial admin: ${INITIAL_ADMIN_EMAIL} / ${INITIAL_ADMIN_PASSWORD}`);
+    console.log(
+      `[InitialAdmin] Created initial admin: ${INITIAL_ADMIN_EMAIL} / ${INITIAL_ADMIN_PASSWORD}`
+    );
   }
 
   // Auto-cleanup once another admin is created

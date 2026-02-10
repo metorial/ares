@@ -621,6 +621,8 @@ class AuthServiceImpl {
   }
 
   async verifyCaptcha(d: { token: string; authIntent: AuthIntent }) {
+    if (!turnstileVerifier.enabled) return;
+
     if (!(await turnstileVerifier.verify({ token: d.token }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
@@ -736,7 +738,7 @@ class AuthServiceImpl {
 
   async completeAuthIntent(d: { authIntent: AuthIntent; app: App }) {
     if (
-      !d.authIntent.captchaVerifiedAt ||
+      (turnstileVerifier.enabled && !d.authIntent.captchaVerifiedAt) ||
       !d.authIntent.verifiedAt ||
       !d.authIntent.userOid ||
       d.authIntent.consumedAt

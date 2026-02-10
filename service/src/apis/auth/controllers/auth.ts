@@ -61,10 +61,12 @@ export let authenticationController = publicApp.controller({
       return {
         options,
 
-        captcha: {
-          type: 'required',
-          siteKey: env.turnstile.TURNSTILE_SITE_KEY
-        },
+        captcha: env.turnstile.TURNSTILE_SITE_KEY
+          ? {
+              type: 'required' as const,
+              siteKey: env.turnstile.TURNSTILE_SITE_KEY
+            }
+          : null,
 
         defaultRedirectUrl: app.defaultRedirectUrl,
 
@@ -81,7 +83,7 @@ export let authenticationController = publicApp.controller({
           clientId: v.string(),
           email: v.string(),
           redirectUrl: redirectUrlValidator,
-          captchaToken: v.string()
+          captchaToken: v.optional(v.string())
         }),
         v.object({
           type: v.literal('oauth'),

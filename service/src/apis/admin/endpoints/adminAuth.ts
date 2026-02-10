@@ -23,16 +23,20 @@ let getGoogleCredentials = () => {
 
 export let adminAuthApp = createHono()
   .get('/auth/google', async c => {
-    let redirectUrl =
-      c.req.query('redirect_url') || `${env.service.ARES_ADMIN_URL}/users`;
+    let redirectUrl = c.req.query('redirect_url') || `${env.service.ARES_ADMIN_URL}/users`;
     let state = generateId('admsta_');
 
-    setCookie(c, `metorial_admin_oauth_state_${state}`, JSON.stringify({ state, redirectUrl }), {
-      path: '/',
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Lax'
-    });
+    setCookie(
+      c,
+      `metorial_admin_oauth_state_${state}`,
+      JSON.stringify({ state, redirectUrl }),
+      {
+        path: '/',
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'Lax'
+      }
+    );
 
     let credentials = getGoogleCredentials();
     let url = socials.google.getAuthUrl(state, credentials);
@@ -67,9 +71,7 @@ export let adminAuthApp = createHono()
     }
 
     if (!socialData.email.endsWith('@metorial.com')) {
-      throw new ServiceError(
-        badRequestError({ message: 'Google account is not allowed' })
-      );
+      throw new ServiceError(badRequestError({ message: 'Google account is not allowed' }));
     }
 
     let context = {
