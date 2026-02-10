@@ -20,4 +20,5 @@ model App {
   authDeviceUserSessions AuthDeviceUserSession[]
   emailDomains           EmailDomain[]
   userEmails             UserEmail[]
+  oauthProviders         AppOAuthProvider[]
 }
