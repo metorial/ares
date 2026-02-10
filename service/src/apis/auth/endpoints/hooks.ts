@@ -2,31 +2,13 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
-import type Cookie from 'cookie';
 import * as Cookies from 'cookie';
 import { env } from '../../../env';
+import { tickets } from '../../../lib/tickets';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
-import { tickets } from '../../../lib/tickets';
 import { resolveApp } from '../lib/resolveApp';
-import { SESSION_ID_COOKIE_NAME } from '../middleware/device';
-
-let isProd = process.env.NODE_ENV === 'production';
-
-let baseCookieOpts: Cookie.SerializeOptions = {
-  domain: env.domains.COOKIE_DOMAIN,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365
-};
-
-if (isProd) {
-  baseCookieOpts = {
-    ...baseCookieOpts,
-    secure: true,
-    httpOnly: true,
-    sameSite: 'lax' as const
-  };
-}
+import { baseCookieOpts, SESSION_ID_COOKIE_NAME } from '../middleware/device';
 
 export let authHooksApp = createHono()
   .get('/oauth/:ticket', async ctx => {
@@ -93,7 +75,9 @@ export let authHooksApp = createHono()
     };
 
     let app = await resolveApp(stateData.appClientId);
-    let device = await deviceService.dangerouslyGetDeviceOnlyById({ deviceId: stateData.deviceId });
+    let device = await deviceService.dangerouslyGetDeviceOnlyById({
+      deviceId: stateData.deviceId
+    });
 
     let ip = ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '';
     let ua = ctx.req.header('user-agent') ?? '';
@@ -121,7 +105,7 @@ export let authHooksApp = createHono()
     }
 
     return ctx.redirect(
-      `${env.urls.AUTH_FRONTEND_HOST}/auth-intent?authIntentId=${res.authIntent.id}&authIntentClientSecret=${res.authIntent.clientSecret}`
+      `${env.service.ARES_AUTH_URL}/auth-intent?authIntentId=${res.authIntent.id}&authIntentClientSecret=${res.authIntent.clientSecret}`
     );
   })
   .get('/sso/:ticket', async ctx => {

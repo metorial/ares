@@ -70,10 +70,9 @@ export let publicApp = createHono()
       key
     });
 
-    return ctx.redirect(`${env.urls.AUTH_FRONTEND_HOST}/email-verified?email=${res.email}`);
+    return ctx.redirect(`${env.service.ARES_AUTH_URL}/email-verified?email=${res.email}`);
   })
-
-  .get('/:splat*?', async c => {
+  .get('*', async c => {
     let preload = {};
 
     return c.html(

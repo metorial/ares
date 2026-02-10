@@ -5,12 +5,6 @@ import {
 } from '@metorial-services/relay-client';
 import { env } from '../env';
 
-console.log(env.service.RELAY_URL);
-
-fetch('http://localhost:52110/metorial-relay')
-  .then(res => res.text())
-  .then(console.log);
-
 export let relay = createRelayClient({
   endpoint: env.service.RELAY_URL
 });
@@ -20,15 +14,11 @@ export let sender = await relay.sender.upsert({
   name: 'Metorial Ares'
 });
 
-console.log(sender);
-
 export let emailIdentity = await relay.emailIdentity.upsert({
   name: env.email.EMAIL_NAME,
   email: env.email.EMAIL_ADDRESS,
   senderId: sender.id
 });
-
-console.log(emailIdentity);
 
 export let createTemplateSender = <Data>(
   template: ITemplate<Data>,

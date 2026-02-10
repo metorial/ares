@@ -39,7 +39,7 @@ export let publicApp = createHono()
       }
     });
   })
-  .get('/:splat*?', async c => {
+  .get('*', async c => {
     let preload = {};
 
     return c.html(

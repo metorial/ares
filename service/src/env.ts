@@ -5,24 +5,18 @@ export let env = createValidatedEnv({
   service: {
     REDIS_URL: v.string(),
     DATABASE_URL: v.string(),
+    SSO_DATABASE_URL: v.string(),
     RELAY_URL: v.string(),
 
     ARES_AUTH_URL: v.string(),
     ARES_ADMIN_URL: v.string(),
+    ARES_SSO_URL: v.string(),
     ARES_INTERNAL_URL: v.string()
   },
 
   email: {
     EMAIL_NAME: v.string(),
     EMAIL_ADDRESS: v.string()
-  },
-
-  domains: {
-    COOKIE_DOMAIN: v.string()
-  },
-
-  urls: {
-    AUTH_FRONTEND_HOST: v.string()
   },
 
   turnstile: {
@@ -37,9 +31,7 @@ export let env = createValidatedEnv({
   },
 
   sso: {
-    SSO_SERVICE_HOST: v.string(),
-    SAML_AUDIENCE: v.string(),
-    SSO_MONGO_URL: v.string()
+    SAML_AUDIENCE: v.string()
   },
 
   keys: {

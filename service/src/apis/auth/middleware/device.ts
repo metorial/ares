@@ -1,7 +1,7 @@
 import type { ServiceRequest } from '@lowerdeck/rpc-server';
 import type Cookie from 'cookie';
-import { deviceService } from '../../../services/device';
 import { env } from '../../../env';
+import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
 
 export const DEVICE_TOKEN_COOKIE_NAME = 'metorial_device_token';
@@ -9,8 +9,14 @@ export const SESSION_ID_COOKIE_NAME = 'metorial_session_id';
 
 let isProd = process.env.NODE_ENV === 'production';
 
+let authUrl = new URL(env.service.ARES_AUTH_URL);
+let authUrlParts = authUrl.hostname.split('.');
+let baseDomain = authUrlParts.length > 2 ? authUrlParts.slice(1).join('.') : authUrl.hostname;
+
+let cookieDomain = baseDomain;
+
 let baseCookieOpts: Cookie.SerializeOptions = {
-  domain: env.domains.COOKIE_DOMAIN,
+  domain: cookieDomain,
   path: '/',
   maxAge: 60 * 60 * 24 * 365
 };
@@ -23,6 +29,8 @@ if (isProd) {
     sameSite: 'lax' as const
   };
 }
+
+export { baseCookieOpts };
 
 export let parseDeviceToken = (deviceToken: string) => {
   let parts = deviceToken.split(':');

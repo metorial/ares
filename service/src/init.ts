@@ -6,20 +6,30 @@ if (!process.env.DATABASE_URL) {
     !process.env.DATABASE_PORT ||
     !process.env.DATABASE_NAME
   ) {
-    throw new Error(
-      'DATABASE_URL is not set and database component env vars are missing'
-    );
+    throw new Error('DATABASE_URL is not set and database component env vars are missing');
   }
 
   process.env.DATABASE_URL = `postgres://${process.env.DATABASE_USERNAME}:${process.env.DATABASE_PASSWORD}@${process.env.DATABASE_HOST}:${process.env.DATABASE_PORT}/${process.env.DATABASE_NAME}?schema=public&sslmode=no-verify&connection_limit=20`;
 }
 
-if (!process.env.REDIS_URL) {
+if (!process.env.SSO_DATABASE_URL) {
   if (
-    !process.env.REDIS_AUTH_TOKEN ||
-    !process.env.REDIS_HOST ||
-    !process.env.REDIS_PORT
+    !process.env.SSO_DATABASE_USERNAME ||
+    !process.env.SSO_DATABASE_PASSWORD ||
+    !process.env.SSO_DATABASE_HOST ||
+    !process.env.SSO_DATABASE_PORT ||
+    !process.env.SSO_DATABASE_NAME
   ) {
+    throw new Error(
+      'SSO_DATABASE_URL is not set and SSO_DATABASE component env vars are missing'
+    );
+  }
+
+  process.env.SSO_DATABASE_URL = `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}?schema=public&sslmode=no-verify`;
+}
+
+if (!process.env.REDIS_URL) {
+  if (!process.env.REDIS_AUTH_TOKEN || !process.env.REDIS_HOST || !process.env.REDIS_PORT) {
     throw new Error('REDIS_URL is not set and redis component env vars are missing');
   }
 

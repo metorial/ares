@@ -98,7 +98,7 @@ export let ssoAuthApp = createHono()
 
       let res = await jackson.oauthController.authorize({
         state: auth.clientSecret,
-        redirect_uri: `${env.sso.SSO_SERVICE_HOST}/sso/auth/callback`,
+        redirect_uri: `${env.service.ARES_SSO_URL}/sso/auth/callback`,
         client_id: connection.internalClientId,
         response_type: 'code',
         code_challenge: codeChallenge,
@@ -154,7 +154,7 @@ export let ssoAuthApp = createHono()
       let tokenRes = await jackson.oauthController.token({
         grant_type: 'authorization_code',
         code: body.code,
-        redirect_uri: `${env.sso.SSO_SERVICE_HOST}/sso/auth/callback`,
+        redirect_uri: `${env.service.ARES_SSO_URL}/sso/auth/callback`,
         client_id: connection.internalClientId,
         client_secret: connection.internalClientSecret,
         // @ts-ignore

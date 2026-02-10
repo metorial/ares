@@ -1,32 +1,14 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import type Cookie from 'cookie';
 import { db } from '../../../db';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
-import { deviceApp, SESSION_ID_COOKIE_NAME } from '../middleware/device';
 import { authAttemptApp } from '../middleware/authAttempt';
+import { baseCookieOpts, deviceApp, SESSION_ID_COOKIE_NAME } from '../middleware/device';
 import { authAttemptPresenter } from '../presenters';
-
-let isProd = process.env.NODE_ENV === 'production';
-
-let baseCookieOpts: Cookie.SerializeOptions = {
-  domain: env.domains.COOKIE_DOMAIN,
-  path: '/',
-  maxAge: 60 * 60 * 24 * 365
-};
-
-if (isProd) {
-  baseCookieOpts = {
-    ...baseCookieOpts,
-    secure: true,
-    httpOnly: true,
-    sameSite: 'lax' as const
-  };
-}
 
 export let authAttemptController = publicApp.controller({
   create: deviceApp
@@ -110,10 +92,12 @@ export let authAttemptController = publicApp.controller({
       return {
         type: 'hook' as const,
         sessionId: session.id,
-        url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/auth-attempt/${await tickets.encode({
-          type: 'auth_attempt',
-          authAttemptId: authAttempt.id
-        })}`
+        url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/auth-attempt/${await tickets.encode(
+          {
+            type: 'auth_attempt',
+            authAttemptId: authAttempt.id
+          }
+        )}`
       };
     })
 });

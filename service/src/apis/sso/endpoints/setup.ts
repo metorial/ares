@@ -62,7 +62,7 @@ export let setupApp = createHono()
         );
       }
 
-      let ssoServiceHost = env.sso.SSO_SERVICE_HOST;
+      let ssoServiceHost = env.service.ARES_SSO_URL;
       let markdownContent = template.md
         .replace(/\{\{ENTITY_ID\}\}/g, env.sso.SAML_AUDIENCE)
         .replace(/\{\{REPLY_URL\}\}/g, `${ssoServiceHost}/sso/jxn/saml/callback`)
