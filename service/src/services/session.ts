@@ -1,20 +1,22 @@
-import {
-  AuthDeviceUserSession,
-  EnterpriseUser,
-  federationDB,
-  FederationID
-} from '@metorial-enterprise/federation-data';
-import { createCachedFunction } from '@metorial/cache';
-import { Context } from '@metorial/context';
-import { notFoundError, ServiceError } from '@metorial/error';
-import { Service } from '@metorial/service';
+import { createCachedFunction } from '@lowerdeck/cache';
+import { notFoundError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
+import type { AuthDevice, AuthDeviceUserSession, User } from '../../prisma/generated/client';
+import { db } from '../db';
+import { env } from '../env';
+import { getId } from '../id';
+import type { Context } from '../lib/context';
 import { deviceService } from './device';
 
 let cacheTTLSecs = 60 * 5;
-let findAuthSessionCached = createCachedFunction({
+let findAuthSessionCached = createCachedFunction<
+  { sessionId: string },
+  { device: AuthDevice; session: AuthDeviceUserSession; user: User } | null
+>({
   name: 'authenticate',
-  provider: async (i: { sessionId: string }, { setTTL }) => {
-    let session = await federationDB.authDeviceUserSession.findUnique({
+  redisUrl: env.service.REDIS_URL,
+  provider: async (i, { setTTL }) => {
+    let session = await db.authDeviceUserSession.findUnique({
       where: {
         id: i.sessionId,
         loggedOutAt: null,
@@ -23,7 +25,7 @@ let findAuthSessionCached = createCachedFunction({
       include: {
         device: true,
         user: {
-          include: { emails: true }
+          include: { userEmails: true }
         }
       }
     });
@@ -33,10 +35,10 @@ let findAuthSessionCached = createCachedFunction({
     if (!session || !device || !user) return null;
 
     if (!user.lastActiveAt || Date.now() - user.lastActiveAt.getTime() > 1000 * 60 * 30) {
-      user = await federationDB.enterpriseUser.update({
-        where: { id: user.id },
+      user = await db.user.update({
+        where: { oid: user.oid },
         data: { lastActiveAt: new Date() },
-        include: { emails: true }
+        include: { userEmails: true }
       });
     }
 
@@ -48,7 +50,7 @@ let findAuthSessionCached = createCachedFunction({
 });
 
 class SessionService {
-  async clearCache(user: EnterpriseUser) {
+  async clearCache(user: User) {
     return findAuthSessionCached.clearByTag(user.id);
   }
 
@@ -79,7 +81,7 @@ class SessionService {
   }
 
   async logout(i: { session: AuthDeviceUserSession }) {
-    let res = await federationDB.authDeviceUserSession.update({
+    let res = await db.authDeviceUserSession.update({
       where: {
         id: i.session.id
       },
@@ -98,15 +100,15 @@ class SessionService {
   }
 
   async getSessionSafe(i: { sessionId: string }) {
-    return federationDB.authDeviceUserSession.findUnique({
+    return db.authDeviceUserSession.findUnique({
       where: { id: i.sessionId },
       include: { device: true, user: true }
     });
   }
 
-  async getUserSession(i: { user: EnterpriseUser; sessionId: string }) {
-    let session = await federationDB.authDeviceUserSession.findUnique({
-      where: { id: i.sessionId, userId: i.user.id },
+  async getUserSession(i: { user: User; sessionId: string }) {
+    let session = await db.authDeviceUserSession.findFirst({
+      where: { id: i.sessionId, userOid: i.user.oid },
       include: { device: true, user: true }
     });
     if (!session) throw new ServiceError(notFoundError('session', i.sessionId));
@@ -115,7 +117,7 @@ class SessionService {
   }
 
   async getImpersonationSession(i: { session: AuthDeviceUserSession }) {
-    let ses = await federationDB.authDeviceUserSession.findUnique({
+    let ses = await db.authDeviceUserSession.findUnique({
       where: { id: i.session.id },
       include: { impersonation: { include: { admin: true } } }
     });
@@ -123,31 +125,29 @@ class SessionService {
     return ses?.impersonation;
   }
 
-  async findAdminForSession(i: { session: AuthDeviceUserSession & { user: EnterpriseUser } }) {
-    let admin = await federationDB.admin.findUnique({
+  async findAdminForSession(i: { session: AuthDeviceUserSession & { user: User } }) {
+    let admin = await db.admin.findUnique({
       where: { email: i.session.user.email }
     });
     return admin;
   }
 
-  async upsertDevAdminSession(i: {
-    session: AuthDeviceUserSession & { user: EnterpriseUser };
-  }) {
+  async upsertDevAdminSession(i: { session: AuthDeviceUserSession & { user: User } }) {
     if (process.env.NODE_ENV != 'development') {
       throw new Error('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO');
     }
 
-    let existingAdmin = await federationDB.admin.findUnique({
+    let existingAdmin = await db.admin.findUnique({
       where: { email: i.session.user.email }
     });
     if (existingAdmin) return existingAdmin;
 
-    return await federationDB.admin.upsert({
+    return await db.admin.upsert({
       where: { email: i.session.user.email },
       create: {
         email: i.session.user.email,
         name: i.session.user.name,
-        id: await FederationID.generateId('admin'),
+        ...getId('admin'),
         password: ''
       },
       update: {}

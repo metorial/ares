@@ -1,13 +1,12 @@
-import { auditLogService } from '@metorial-enterprise/federation-audit-log';
-import { federationDB } from '@metorial-enterprise/federation-data';
-import { Context } from '@metorial/context';
-import { forbiddenError, ServiceError } from '@metorial/error';
-import { Service } from '@metorial/service';
+import { forbiddenError, ServiceError } from '@lowerdeck/error';
+import { Service } from '@lowerdeck/service';
 import { addMinutes, subMinutes } from 'date-fns';
+import { db } from '../db';
+import type { Context } from '../lib/context';
 
 class AuthBlockServiceImpl {
   async checkBlocked(i: { email: string; context: Context }) {
-    let block = await federationDB.authBlock.findFirst({
+    let block = await db.authBlock.findFirst({
       where: {
         blockedUntil: { gt: new Date() },
         OR: [
@@ -29,7 +28,7 @@ class AuthBlockServiceImpl {
   }
 
   async blockIfNeeded(i: { email: string; context: Context }) {
-    let authActionsFromEmail = await federationDB.authIntent.count({
+    let authActionsFromEmail = await db.authIntent.count({
       where: {
         identifier: i.email,
         identifierType: 'email',
@@ -38,7 +37,7 @@ class AuthBlockServiceImpl {
     });
 
     if (authActionsFromEmail > 15) {
-      await federationDB.authBlock.create({
+      await db.authBlock.create({
         data: {
           blockedUntil: addMinutes(new Date(), 60),
           identifier: i.email,
@@ -46,23 +45,6 @@ class AuthBlockServiceImpl {
           ip: i.context.ip
         }
       });
-
-      let user = await federationDB.enterpriseUser.findFirst({
-        where: {
-          emails: { some: { email: i.email } }
-        }
-      });
-
-      if (user) {
-        await auditLogService.createAuditLog({
-          object: 'user',
-          action: 'block',
-          target: { id: user.id, name: user.name },
-          actor: { type: 'user', user },
-          context: i.context,
-          payload: { email: i.email }
-        });
-      }
     }
   }
 

@@ -1,21 +1,20 @@
-import {
+import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { addWeeks } from 'date-fns';
+import type {
   AuthAttempt,
   AuthDevice,
   AuthDeviceUserSession,
-  EnterpriseUser,
-  federationDB,
-  FederationID,
-  withTransaction
-} from '@metorial-enterprise/federation-data';
-import { Context } from '@metorial/context';
-import { ServiceError, unauthorizedError } from '@metorial/error';
-import { addWeeks } from 'date-fns';
+  User
+} from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
+import { getId, snowflake } from '../id';
+import type { Context } from '../lib/context';
 
 class DeviceService {
   async getAllUsersForDevice(i: { device: AuthDevice }) {
-    return await federationDB.authDeviceUserSession.findMany({
+    return await db.authDeviceUserSession.findMany({
       where: {
-        deviceId: i.device.id
+        deviceOid: i.device.oid
       },
       include: {
         user: true
@@ -27,12 +26,12 @@ class DeviceService {
   }
 
   async getLoggedInUsersForDevice(i: { device: AuthDevice }) {
-    return await federationDB.authDeviceUserSession.findMany({
+    return await db.authDeviceUserSession.findMany({
       where: {
-        deviceId: i.device.id,
+        deviceOid: i.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationId: null
+        impersonationOid: null
       },
       include: {
         user: true
@@ -49,10 +48,10 @@ class DeviceService {
   }
 
   async getLoggedInAndLoggedOutUsersForDevice(i: { device: AuthDevice }) {
-    let sessions = await federationDB.authDeviceUserSession.findMany({
+    let sessions = await db.authDeviceUserSession.findMany({
       where: {
-        deviceId: i.device.id,
-        impersonationId: null
+        deviceOid: i.device.oid,
+        impersonationOid: null
       },
       include: {
         user: true
@@ -65,26 +64,26 @@ class DeviceService {
     let loggedInSessions = sessions.filter(s => !s.loggedOutAt && s.expiresAt > new Date());
     let loggedOutSessions = sessions.filter(s => s.loggedOutAt || s.expiresAt <= new Date());
 
-    let loggedInUserIds = new Set(loggedInSessions.map(s => s.userId));
+    let loggedInUserIds = new Set(loggedInSessions.map(s => s.userOid));
     let seenUserIds = new Set();
 
     let loggedOutSessionsUnique = loggedOutSessions.filter(s => {
-      if (seenUserIds.has(s.userId)) return false;
-      seenUserIds.add(s.userId);
-      return !loggedInUserIds.has(s.userId);
+      if (seenUserIds.has(s.userOid)) return false;
+      seenUserIds.add(s.userOid);
+      return !loggedInUserIds.has(s.userOid);
     });
 
     return [...loggedInSessions, ...loggedOutSessionsUnique];
   }
 
-  async getSessionForLoggedInUser(i: { user: EnterpriseUser; device: AuthDevice }) {
-    return await federationDB.authDeviceUserSession.findFirst({
+  async getSessionForLoggedInUser(i: { user: User; device: AuthDevice }) {
+    return await db.authDeviceUserSession.findFirst({
       where: {
-        userId: i.user.id,
-        deviceId: i.device.id,
+        userOid: i.user.oid,
+        deviceOid: i.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationId: null
+        impersonationOid: null
       },
       include: {
         user: true
@@ -92,7 +91,7 @@ class DeviceService {
     });
   }
 
-  async checkIfUserIsLoggedIn(i: { user: EnterpriseUser; device: AuthDevice }) {
+  async checkIfUserIsLoggedIn(i: { user: User; device: AuthDevice }) {
     let session = await this.getSessionForLoggedInUser(i);
 
     return !!session;
@@ -110,10 +109,10 @@ class DeviceService {
 
       let [device, user] = await Promise.all([
         db.authDevice.findUnique({
-          where: { id: i.authAttempt.deviceId }
+          where: { oid: i.authAttempt.deviceOid }
         }),
-        db.enterpriseUser.findUnique({
-          where: { id: i.authAttempt.userId }
+        db.user.findUnique({
+          where: { oid: i.authAttempt.userOid }
         })
       ]);
 
@@ -130,26 +129,27 @@ class DeviceService {
         : null;
 
       if (!impersonation) {
-        await db.enterpriseUser.updateMany({
-          where: { id: user!.id },
+        await db.user.updateMany({
+          where: { oid: user!.oid },
           data: { lastLoginAt: new Date() }
         });
       }
 
       return await db.authDeviceUserSession.create({
         data: {
-          id: await FederationID.generateId('deviceUserSession'),
-          userId: user!.id,
-          deviceId: device!.id,
+          ...getId('authDeviceUserSession'),
+          userOid: user!.oid,
+          deviceOid: device!.oid,
+          appOid: user!.appOid,
           expiresAt: impersonation?.expiresAt ?? addWeeks(new Date(), 2),
-          impersonationId: impersonation?.id
+          impersonationOid: impersonation?.oid ?? null
         }
       });
     });
   }
 
   async getDeviceSafe(i: { deviceId: string; deviceClientSecret: string }) {
-    return await federationDB.authDevice.findFirst({
+    return await db.authDevice.findFirst({
       where: {
         id: i.deviceId,
         clientSecret: i.deviceClientSecret
@@ -176,7 +176,7 @@ class DeviceService {
   }
 
   async dangerouslyGetDeviceOnlyById(i: { deviceId: string }) {
-    let device = await federationDB.authDevice.findFirst({
+    let device = await db.authDevice.findFirst({
       where: { id: i.deviceId }
     });
     if (!device) {
@@ -208,11 +208,11 @@ class DeviceService {
     return device;
   }
 
-  async listUserSessions(i: { user: EnterpriseUser }) {
-    let sessions = await federationDB.authDeviceUserSession.findMany({
+  async listUserSessions(i: { user: User }) {
+    let sessions = await db.authDeviceUserSession.findMany({
       where: {
-        userId: i.user.id,
-        impersonationId: null
+        userOid: i.user.oid,
+        impersonationOid: null
       },
       include: {
         device: true
@@ -226,10 +226,10 @@ class DeviceService {
   }
 
   async createDevice(i: { context: Context }) {
-    return await federationDB.authDevice.create({
+    return await db.authDevice.create({
       data: {
-        id: await FederationID.generateId('device'),
-        clientSecret: await FederationID.generateId('deviceClientSecret'),
+        ...getId('authDevice'),
+        clientSecret: getId('authDevice').id,
 
         ip: i.context.ip,
         ua: i.context.ua,
@@ -239,6 +239,7 @@ class DeviceService {
 
         history: {
           create: {
+            id: snowflake.nextId(),
             ip: i.context.ip,
             ua: i.context.ua
           }
@@ -252,7 +253,7 @@ class DeviceService {
     context: Context;
     session?: AuthDeviceUserSession;
   }) {
-    if (i.session?.impersonationId) return false;
+    if (i.session?.impersonationOid) return false;
 
     let updateHistory = false;
     let updateDeviceLastActiveAt = false;
@@ -289,7 +290,7 @@ class DeviceService {
       updateDeviceLastActiveAt ||
       updateSessionLastActiveAt
     ) {
-      await federationDB.authDevice.updateMany({
+      await db.authDevice.updateMany({
         where: { id: i.device.id },
         data: {
           lastIp: i.context.ip,
@@ -299,9 +300,10 @@ class DeviceService {
       });
 
       if (updateHistory) {
-        await federationDB.authDeviceHistory.create({
+        await db.authDeviceHistory.create({
           data: {
-            deviceId: i.device.id,
+            id: snowflake.nextId(),
+            deviceOid: i.device.oid,
             ip: i.context.ip,
             ua: i.context.ua
           }
@@ -310,19 +312,19 @@ class DeviceService {
 
       if (i.session) {
         if (bumpSession) {
-          await federationDB.authDeviceUserSession.updateMany({
+          await db.authDeviceUserSession.updateMany({
             where: { id: i.session.id },
             data: { expiresAt: addWeeks(new Date(), 2) }
           });
         }
 
         if (updateSessionLastActiveAt) {
-          await federationDB.enterpriseUser.updateMany({
-            where: { id: i.session.userId },
+          await db.user.updateMany({
+            where: { oid: i.session.userOid },
             data: { lastActiveAt: new Date() }
           });
 
-          await federationDB.authDeviceUserSession.update({
+          await db.authDeviceUserSession.update({
             where: { id: i.session.id },
             data: { lastActiveAt: new Date() }
           });

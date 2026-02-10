@@ -1,40 +1,48 @@
-import { auditLogService } from '@metorial-enterprise/federation-audit-log';
 import {
+  badRequestError,
+  forbiddenError,
+  notFoundError,
+  ServiceError
+} from '@lowerdeck/error';
+import { generateCode } from '@lowerdeck/id';
+import { Service } from '@lowerdeck/service';
+import { addMinutes, subMinutes } from 'date-fns';
+import type {
+  App,
   AuthDevice,
   AuthIntent,
   AuthIntentStep,
-  ensureUserIdentityProvider,
-  EnterpriseUser,
-  federationDB,
-  FederationID,
-  UserImpersonation,
-  withTransaction
-} from '@metorial-enterprise/federation-data';
-import { Context } from '@metorial/context';
-import { badRequestError, forbiddenError, notFoundError, ServiceError } from '@metorial/error';
-import { generateCode } from '@metorial/id';
-import { Service } from '@metorial/service';
-import { addMinutes, subMinutes } from 'date-fns';
-import { authConfig, providers } from '../definitions';
+  User,
+  UserImpersonation
+} from '../../prisma/generated/client';
+import { db, withTransaction } from '../db';
 import { sendAuthCodeEmail } from '../email/authCode';
 import { successfulLoginVerification } from '../email/successfulLogin';
-import { env } from '../env';
+import { getId } from '../id';
+import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
+import type { OAuthCredentials } from '../lib/socials';
 import { socials } from '../lib/socials';
-import { sso } from '../lib/sso';
 import { turnstileVerifier } from '../lib/turnstile';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { userService } from './user';
 
 class AuthServiceImpl {
-  async getAuthOptions() {
-    let config = await authConfig();
-    if (config.ssoTenantId) return { options: [{ type: 'sso' }] };
+  async getAuthOptions(i: { app: App }) {
+    let options: { type: string }[] = [{ type: 'email' }];
 
-    let options = [{ type: 'email' }];
-    if (env.oauth.OAUTH_GITHUB_CLIENT_ID) options.push({ type: 'oauth.github' });
-    if (env.oauth.OAUTH_GOOGLE_CLIENT_ID) options.push({ type: 'oauth.google' });
+    // Query database for enabled OAuth providers for this app
+    let oauthProviders = await db.appOAuthProvider.findMany({
+      where: {
+        appOid: i.app.oid,
+        enabled: true
+      }
+    });
+
+    for (let provider of oauthProviders) {
+      options.push({ type: `oauth.${provider.provider}` });
+    }
 
     return {
       options
@@ -47,10 +55,8 @@ class AuthServiceImpl {
     redirectUrl: string;
     device: AuthDevice;
     captchaToken?: string;
+    app: App;
   }) {
-    let config = await authConfig();
-    if (config.ssoTenantId) return { type: 'sso' as const };
-
     if (i.captchaToken && !(await turnstileVerifier.verify({ token: i.captchaToken }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
@@ -59,8 +65,8 @@ class AuthServiceImpl {
 
     await authBlockService.registerBlock({ email, context: i.context });
 
-    return await withTransaction(async db => {
-      let user = await userService.findByEmailSafe({ email });
+    return await withTransaction(async tdb => {
+      let user = await userService.findByEmailSafe({ email, app: i.app });
 
       if (user) {
         let isLoggedIn = await deviceService.checkIfUserIsLoggedIn({
@@ -80,10 +86,10 @@ class AuthServiceImpl {
         }
       }
 
-      let authIntent = await db.authIntent.create({
+      let authIntent = await tdb.authIntent.create({
         data: {
-          id: await FederationID.generateId('authIntent'),
-          clientSecret: await FederationID.generateId('authIntentClientSecret'),
+          ...getId('authIntent'),
+          clientSecret: getId('authIntent').id,
 
           type: 'email_code',
 
@@ -92,12 +98,14 @@ class AuthServiceImpl {
           identifier: email,
           identifierType: 'email',
 
-          userId: user?.id,
-          deviceId: i.device.id,
+          userOid: user?.oid ?? null,
+          deviceOid: i.device.oid,
+          appOid: i.app.oid,
 
           expiresAt: addMinutes(new Date(), 30),
 
-          ...i.context
+          ip: i.context.ip,
+          ua: i.context.ua
         }
       });
 
@@ -107,17 +115,6 @@ class AuthServiceImpl {
         authIntent,
         index: 0
       });
-
-      if (user) {
-        await auditLogService.createAuditLog({
-          object: 'user',
-          action: 'auth_attempt',
-          target: { id: user.id, name: user.name },
-          actor: { type: 'user', user },
-          context: i.context,
-          payload: {}
-        });
-      }
 
       return {
         type: 'auth_intent' as const,
@@ -132,7 +129,7 @@ class AuthServiceImpl {
     redirectUrl: string;
     device: AuthDevice;
   }) {
-    let userImpersonation = await federationDB.userImpersonation.findUnique({
+    let userImpersonation = await db.userImpersonation.findUnique({
       where: { clientSecret: i.impersonationClientSecret },
       include: { user: true }
     });
@@ -144,7 +141,7 @@ class AuthServiceImpl {
       );
     }
 
-    return await withTransaction(async db => {
+    return await withTransaction(async tdb => {
       return await this.createAuthAttempt({
         user: userImpersonation.user,
         device: i.device,
@@ -154,19 +151,63 @@ class AuthServiceImpl {
     });
   }
 
-  async getSocialProviderAuthUrl(i: { provider: 'github' | 'google'; state: string }) {
-    return socials[i.provider].getAuthUrl(i.state);
+  async getSocialProviderAuthUrl(i: {
+    provider: 'github' | 'google';
+    state: string;
+    app: App;
+  }) {
+    let oauthProvider = await db.appOAuthProvider.findFirst({
+      where: {
+        appOid: i.app.oid,
+        provider: i.provider,
+        enabled: true
+      }
+    });
+
+    if (!oauthProvider) {
+      throw new ServiceError(
+        badRequestError({ message: `${i.provider} OAuth is not configured for this app` })
+      );
+    }
+
+    let credentials: OAuthCredentials = {
+      clientId: oauthProvider.clientId,
+      clientSecret: oauthProvider.clientSecret,
+      redirectUri: oauthProvider.redirectUri
+    };
+
+    return socials[i.provider].getAuthUrl(i.state, credentials);
   }
 
   async authWithSocialProviderToken(i: {
     code: string;
     provider: 'github' | 'google';
-
     context: Context;
     redirectUrl: string;
     device: AuthDevice;
+    app: App;
   }) {
-    let socialRes = await socials[i.provider].exchangeCodeForData(i.code);
+    let oauthProvider = await db.appOAuthProvider.findFirst({
+      where: {
+        appOid: i.app.oid,
+        provider: i.provider,
+        enabled: true
+      }
+    });
+
+    if (!oauthProvider) {
+      throw new ServiceError(
+        badRequestError({ message: `${i.provider} OAuth is not configured for this app` })
+      );
+    }
+
+    let credentials: OAuthCredentials = {
+      clientId: oauthProvider.clientId,
+      clientSecret: oauthProvider.clientSecret,
+      redirectUri: oauthProvider.redirectUri
+    };
+
+    let socialRes = await socials[i.provider].exchangeCodeForData(i.code, credentials);
 
     if (!socialRes.email) {
       throw new ServiceError(
@@ -174,46 +215,64 @@ class AuthServiceImpl {
       );
     }
 
-    let provider = await providers[i.provider];
-
-    let userIdentity = await federationDB.userIdentity.findFirst({
-      where: { providerId: provider.id, uid: socialRes.id }
+    // Get or create user identity provider
+    let identityProvider = await db.userIdentityProvider.findFirst({
+      where: { identifier: i.provider }
     });
+    if (!identityProvider) {
+      identityProvider = await db.userIdentityProvider.create({
+        data: {
+          ...getId('userIdentityProvider'),
+          identifier: i.provider,
+          name: i.provider.charAt(0).toUpperCase() + i.provider.slice(1)
+        }
+      });
+    }
+
+    let userIdentity = await db.userIdentity.findFirst({
+      where: {
+        providerOid: identityProvider.oid,
+        uid: socialRes.id
+      }
+    });
+
     if (!userIdentity) {
-      let name = socialRes.name || socialRes.email.split('@')[0];
+      let name = socialRes.name || socialRes.email.split('@')[0]!;
       let nameParts = name.split(' ');
-      let firstName = nameParts[0];
+      let firstName = nameParts[0]!;
       let lastName = nameParts.slice(1).join(' ');
 
-      userIdentity = await federationDB.userIdentity.create({
+      userIdentity = await db.userIdentity.create({
         data: {
-          id: await FederationID.generateId('userIdentity'),
+          ...getId('userIdentity'),
           uid: socialRes.id,
           email: socialRes.email,
           firstName,
           lastName,
           name,
-          photoUrl: socialRes.photoUrl,
-          providerId: provider.id
+          photoUrl: socialRes.photoUrl ?? null,
+          providerOid: identityProvider.oid,
+          userOid: null
         }
       });
     }
 
-    if (!userIdentity.userId) {
+    if (!userIdentity.userOid) {
       let user = await userService.findByEmailSafe({
-        email: socialRes.email
+        email: socialRes.email,
+        app: i.app
       });
 
       if (user) {
-        userIdentity = await federationDB.userIdentity.update({
-          where: { id: userIdentity.id },
-          data: { userId: user.id }
+        userIdentity = await db.userIdentity.update({
+          where: { oid: userIdentity.oid },
+          data: { userOid: user.oid }
         });
       }
     }
 
-    let user = userIdentity.userId
-      ? await federationDB.enterpriseUser.findUnique({ where: { id: userIdentity.userId } })
+    let user = userIdentity.userOid
+      ? await db.user.findUnique({ where: { oid: userIdentity.userOid } })
       : null;
 
     if (
@@ -233,137 +292,24 @@ class AuthServiceImpl {
       };
     }
 
-    let authIntent = await federationDB.authIntent.create({
+    let authIntent = await db.authIntent.create({
       data: {
-        id: await FederationID.generateId('authIntent'),
-        clientSecret: await FederationID.generateId('authIntentClientSecret'),
+        ...getId('authIntent'),
+        clientSecret: getId('authIntent').id,
 
         type: 'oauth',
-        userIdentityId: userIdentity.id,
-        userId: userIdentity.userId,
-        deviceId: i.device.id,
+        userIdentityOid: userIdentity.oid,
+        userOid: userIdentity.userOid,
+        deviceOid: i.device.oid,
+        appOid: i.app.oid,
 
         redirectUrl: i.redirectUrl,
 
         identifier: socialRes.email,
         identifierType: 'email',
 
-        ...i.context,
-
-        verifiedAt: new Date(),
-        captchaVerifiedAt: new Date(),
-        expiresAt: addMinutes(new Date(), 30)
-      }
-    });
-
-    return {
-      type: 'auth_intent' as const,
-      authIntent
-    };
-  }
-
-  async getSsoAuthUrl(i: { email?: string; state: string; redirectUri: string }) {
-    let config = await authConfig();
-    if (!config.ssoTenantId) {
-      throw new ServiceError(forbiddenError({ message: 'SSO is not configured' }));
-    }
-
-    let res = await sso.auth.start({
-      tenantId: config.ssoTenantId,
-      redirectUri: i.redirectUri,
-      state: i.state,
-      email: i.email
-    });
-
-    return res.url;
-  }
-
-  async authWithSsoToken(i: {
-    state: string;
-    authId: string;
-
-    context: Context;
-    redirectUrl: string;
-    device: AuthDevice;
-  }) {
-    let auth = await sso.auth.complete({ authId: i.authId });
-    if (auth.auth.state !== i.state) {
-      throw new ServiceError(badRequestError({ message: 'Invalid SSO state' }));
-    }
-
-    let provider = await ensureUserIdentityProvider(() => ({
-      identifier: `sso_${auth.tenant.id}`,
-      name: auth.tenant.name
-    }));
-    let profile = auth.user;
-
-    let userIdentity = await federationDB.userIdentity.findFirst({
-      where: { providerId: provider.id, uid: profile.id }
-    });
-    if (!userIdentity) {
-      userIdentity = await federationDB.userIdentity.create({
-        data: {
-          id: await FederationID.generateId('userIdentity'),
-          uid: profile.id,
-          email: profile.email,
-          firstName: profile.firstName,
-          lastName: profile.lastName,
-          name: profile.firstName + ' ' + profile.lastName,
-          providerId: provider.id
-        }
-      });
-    }
-
-    if (!userIdentity.userId) {
-      let user = await userService.findByEmailSafe({
-        email: profile.email
-      });
-
-      if (user) {
-        userIdentity = await federationDB.userIdentity.update({
-          where: { id: userIdentity.id },
-          data: { userId: user.id }
-        });
-      }
-    }
-
-    let user = userIdentity.userId
-      ? await federationDB.enterpriseUser.findUnique({ where: { id: userIdentity.userId } })
-      : null;
-
-    if (
-      user &&
-      (await deviceService.checkIfUserIsLoggedIn({
-        user,
-        device: i.device
-      }))
-    ) {
-      return {
-        type: 'auth_attempt' as const,
-        authAttempt: await this.createAuthAttempt({
-          user,
-          device: i.device,
-          redirectUrl: i.redirectUrl
-        })
-      };
-    }
-
-    let authIntent = await federationDB.authIntent.create({
-      data: {
-        id: await FederationID.generateId('authIntent'),
-        clientSecret: await FederationID.generateId('authIntentClientSecret'),
-
-        type: 'oauth',
-        userIdentityId: userIdentity.id,
-        userId: userIdentity.userId,
-        deviceId: i.device.id,
-
-        redirectUrl: i.redirectUrl,
-
-        identifier: profile.email,
-        identifierType: 'email',
-
-        ...i.context,
+        ip: i.context.ip,
+        ua: i.context.ua,
 
         verifiedAt: new Date(),
         captchaVerifiedAt: new Date(),
@@ -380,11 +326,11 @@ class AuthServiceImpl {
   async createAuthIntentStep(
     i: { type: 'email_code'; email: string } & { authIntent: AuthIntent; index: number }
   ) {
-    return await withTransaction(async db => {
-      let step = await db.authIntentStep.create({
+    return await withTransaction(async tdb => {
+      let step = await tdb.authIntentStep.create({
         data: {
-          id: await FederationID.generateId('authIntentStep'),
-          authIntentId: i.authIntent.id,
+          ...getId('authIntentStep'),
+          authIntentOid: i.authIntent.oid,
           type: i.type,
           index: i.index,
           email: i.email
@@ -398,12 +344,12 @@ class AuthServiceImpl {
   async createAuthIntentCode(i: { step: AuthIntentStep }) {
     if (!i.step.email) throw new Error('Invalid step for code sending');
 
-    await withTransaction(async db => {
-      let code = await db.authIntentCode.create({
+    await withTransaction(async tdb => {
+      let code = await tdb.authIntentCode.create({
         data: {
-          id: await FederationID.generateId('authIntentCode'),
-          authIntentId: i.step.authIntentId,
-          stepId: i.step.id,
+          ...getId('authIntentCode'),
+          authIntentOid: i.step.authIntentOid,
+          stepOid: i.step.oid,
           email: i.step.email!,
           code: process.env.NODE_ENV == 'development' ? '111111' : generateCode(6)
         }
@@ -419,7 +365,7 @@ class AuthServiceImpl {
   }
 
   async getAuthIntent(i: { authIntentId: string; clientSecret: string }) {
-    let authIntent = await federationDB.authIntent.findUnique({
+    let authIntent = await db.authIntent.findUnique({
       where: {
         id: i.authIntentId,
         clientSecret: i.clientSecret,
@@ -437,8 +383,8 @@ class AuthServiceImpl {
   }
 
   async resendAuthIntentCode(i: { authIntent: AuthIntent; step: AuthIntentStep }) {
-    let codes = await federationDB.authIntentCode.findMany({
-      where: { authIntentId: i.authIntent.id },
+    let codes = await db.authIntentCode.findMany({
+      where: { authIntentOid: i.authIntent.oid },
       orderBy: { createdAt: 'desc' }
     });
     if (codes.length >= 10)
@@ -469,9 +415,9 @@ class AuthServiceImpl {
     }
 
     let isCurrentStep =
-      (await federationDB.authIntentStep.count({
+      (await db.authIntentStep.count({
         where: {
-          authIntentId: i.step.authIntentId,
+          authIntentOid: i.step.authIntentOid,
           index: { lt: i.step.index },
           verifiedAt: null
         }
@@ -482,17 +428,17 @@ class AuthServiceImpl {
       );
     }
 
-    let code = await federationDB.authIntentCode.findFirst({
+    let code = await db.authIntentCode.findFirst({
       where: {
-        stepId: i.step.id,
+        stepOid: i.step.oid,
         code: i.input.code
       }
     });
     let success = !!code;
 
     if (!success) {
-      let verificationAttempts = await federationDB.authIntentVerificationAttempt.count({
-        where: { authIntentId: i.step.authIntentId }
+      let verificationAttempts = await db.authIntentVerificationAttempt.count({
+        where: { authIntentOid: i.step.authIntentOid }
       });
 
       if (verificationAttempts > 15) {
@@ -504,30 +450,30 @@ class AuthServiceImpl {
       }
     }
 
-    await federationDB.authIntentVerificationAttempt.create({
+    await db.authIntentVerificationAttempt.create({
       data: {
-        id: await FederationID.generateId('authIntentVerificationAttempt'),
-        authIntentId: i.step.authIntentId,
+        ...getId('authIntentVerificationAttempt'),
+        authIntentOid: i.step.authIntentOid,
         stepId: i.step.id,
         status: success ? 'success' : 'failure'
       }
     });
 
     if (success) {
-      await federationDB.authIntentStep.update({
-        where: { id: i.step.id },
+      await db.authIntentStep.update({
+        where: { oid: i.step.oid },
         data: { verifiedAt: new Date() }
       });
 
-      let unverifiedSteps = await federationDB.authIntentStep.count({
+      let unverifiedSteps = await db.authIntentStep.count({
         where: {
-          authIntentId: i.step.authIntentId,
+          authIntentOid: i.step.authIntentOid,
           verifiedAt: null
         }
       });
       if (unverifiedSteps == 0) {
-        await federationDB.authIntent.update({
-          where: { id: i.step.authIntentId },
+        await db.authIntent.update({
+          where: { oid: i.step.authIntentOid },
           data: { verifiedAt: new Date(), expiresAt: addMinutes(new Date(), 30) }
         });
       }
@@ -546,8 +492,8 @@ class AuthServiceImpl {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
 
-    await federationDB.authIntent.update({
-      where: { id: i.authIntent.id },
+    await db.authIntent.update({
+      where: { oid: i.authIntent.oid },
       data: { captchaVerifiedAt: new Date() }
     });
   }
@@ -559,8 +505,9 @@ class AuthServiceImpl {
       lastName: string;
       acceptedTerms: boolean;
     };
+    app: App;
   }) {
-    if (!i.authIntent.verifiedAt || i.authIntent.userId) {
+    if (!i.authIntent.verifiedAt || i.authIntent.userOid) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
 
@@ -574,11 +521,12 @@ class AuthServiceImpl {
 
     let user = i.authIntent.identifier
       ? await userService.findByEmailSafe({
-          email: i.authIntent.identifier
+          email: i.authIntent.identifier,
+          app: i.app
         })
       : null;
 
-    return await withTransaction(async db => {
+    return await withTransaction(async tdb => {
       if (user) {
         user = await userService.updateUser({
           user,
@@ -588,26 +536,35 @@ class AuthServiceImpl {
           },
           context: {
             ip: i.authIntent.ip,
-            ua: i.authIntent.ua
+            ua: i.authIntent.ua ?? ''
           }
         });
       } else {
+        if (!i.authIntent.identifier) {
+          throw new ServiceError(
+            badRequestError({
+              message: 'Cannot create user without email identifier'
+            })
+          );
+        }
+
         user = await userService.createUser({
-          email: i.authIntent.identifier!,
+          email: i.authIntent.identifier,
           firstName: i.input.firstName,
           lastName: i.input.lastName,
           acceptedTerms: i.input.acceptedTerms,
           type: 'standard_user',
           context: {
             ip: i.authIntent.ip,
-            ua: i.authIntent.ua
-          }
+            ua: i.authIntent.ua ?? ''
+          },
+          app: i.app
         });
       }
 
-      await db.authIntent.update({
-        where: { id: i.authIntent.id },
-        data: { userId: user.id }
+      await tdb.authIntent.update({
+        where: { oid: i.authIntent.oid },
+        data: { userOid: user.oid }
       });
 
       return user;
@@ -615,47 +572,48 @@ class AuthServiceImpl {
   }
 
   async createAuthAttempt(i: {
-    user: EnterpriseUser;
+    user: User;
     device: AuthDevice;
     authIntent?: AuthIntent;
     redirectUrl: string;
     userImpersonation?: UserImpersonation;
   }) {
-    return withTransaction(async db => {
-      return await db.authAttempt.create({
+    return withTransaction(async tdb => {
+      return await tdb.authAttempt.create({
         data: {
-          id: await FederationID.generateId('authAttempt'),
-          clientSecret: await FederationID.generateId('authAttemptClientSecret'),
+          ...getId('authAttempt'),
+          clientSecret: getId('authAttempt').id,
 
           status: 'pending',
 
-          userId: i.user.id,
-          deviceId: i.device.id,
+          userOid: i.user.oid,
+          deviceOid: i.device.oid,
+          appOid: i.user.appOid,
 
           redirectUrl: i.redirectUrl,
-          authIntentId: i.authIntent?.id,
-          userImpersonationId: i.userImpersonation?.id,
+          authIntentOid: i.authIntent?.oid ?? null,
+          userImpersonationId: i.userImpersonation?.id ?? null,
 
           ip: i.device.ip,
-          ua: i.device.ua
+          ua: i.device.ua ?? ''
         }
       });
     });
   }
 
-  async completeAuthIntent(i: { authIntent: AuthIntent }) {
+  async completeAuthIntent(i: { authIntent: AuthIntent; app: App }) {
     if (
       !i.authIntent.captchaVerifiedAt ||
       !i.authIntent.verifiedAt ||
-      !i.authIntent.userId ||
+      !i.authIntent.userOid ||
       i.authIntent.consumedAt
     ) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
 
     let [user, device] = await Promise.all([
-      federationDB.enterpriseUser.findUnique({ where: { id: i.authIntent.userId } }),
-      federationDB.authDevice.findUnique({ where: { id: i.authIntent.deviceId } })
+      db.user.findUnique({ where: { oid: i.authIntent.userOid } }),
+      db.authDevice.findUnique({ where: { oid: i.authIntent.deviceOid } })
     ]);
     if (!user || !device) throw new Error('WTF - Invalid auth intent state');
 
@@ -669,9 +627,9 @@ class AuthServiceImpl {
       });
     }
 
-    return withTransaction(async db => {
-      await db.authIntent.update({
-        where: { id: i.authIntent.id },
+    return withTransaction(async tdb => {
+      await tdb.authIntent.update({
+        where: { oid: i.authIntent.oid },
         data: { consumedAt: new Date(), expiresAt: new Date() }
       });
 
@@ -685,7 +643,7 @@ class AuthServiceImpl {
   }
 
   async getAuthAttempt(i: { authAttemptId: string; clientSecret: string }) {
-    let authAttempt = await federationDB.authAttempt.findUnique({
+    let authAttempt = await db.authAttempt.findUnique({
       where: {
         id: i.authAttemptId,
         clientSecret: i.clientSecret,
@@ -698,7 +656,7 @@ class AuthServiceImpl {
   }
 
   async dangerouslyGetAuthAttemptOnlyById(i: { authAttemptId: string }) {
-    let authAttempt = await federationDB.authAttempt.findUnique({
+    let authAttempt = await db.authAttempt.findUnique({
       where: {
         id: i.authAttemptId,
         createdAt: { gt: subMinutes(new Date(), 1) }

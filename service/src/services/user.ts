@@ -1,43 +1,29 @@
-import { auditLogService } from '@metorial-enterprise/federation-audit-log';
-import {
-  addAfterTransactionHook,
-  deletedEmail,
-  ensureEmailDomain,
-  EnterpriseUser,
-  federationDB,
-  FederationID,
-  UserEmail,
-  UserTermsType,
-  withTransaction
-} from '@metorial-enterprise/federation-data';
-import { internalNotificationService } from '@metorial-enterprise/federation-internal-notifications';
-import { EntityImage, islandUserService } from '@metorial-enterprise/federation-islands';
-import { Context } from '@metorial/context';
 import {
   badRequestError,
   conflictError,
   notFoundError,
   preconditionFailedError,
   ServiceError
-} from '@metorial/error';
-import { generatePlainId } from '@metorial/id';
-import { Service } from '@metorial/service';
-import { authConfig, authTenant, terms } from '../definitions';
+} from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
+import { Service } from '@lowerdeck/service';
+import type { App, User, UserEmail } from '../../prisma/generated/client';
+import { addAfterTransactionHook, db, withTransaction } from '../db';
 import { sendEmailVerification } from '../email/emailVerification';
 import { userEvents } from '../events/user';
+import { getId } from '../id';
+import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
-import { createCompanyPeopleQueue } from '../queues/createCompanyPeople';
-
-let whitelistExempt = ['@metorial.com', '@herber.space', '@ycombinator.com'];
 
 class UserServiceImpl {
-  async findByEmailSafe(i: { email: string }) {
-    return await federationDB.enterpriseUser.findFirst({
+  async findByEmailSafe(i: { email: string; app: App }) {
+    return await db.user.findFirst({
       where: {
+        appOid: i.app.oid,
         OR: [
           { email: i.email },
           {
-            emails: {
+            userEmails: {
               some: {
                 email: i.email,
                 verifiedAt: { not: null }
@@ -49,9 +35,10 @@ class UserServiceImpl {
     });
   }
 
-  async findByEmail(i: { email: string }) {
+  async findByEmail(i: { email: string; app: App }) {
     let user = await this.findByEmailSafe(i);
     if (!user) throw new ServiceError(notFoundError('user', null));
+    return user;
   }
 
   async createUser(i: {
@@ -60,6 +47,7 @@ class UserServiceImpl {
     lastName: string;
     acceptedTerms: boolean;
     context: Context;
+    app: App;
     type: 'standard_user' | 'pre_created_user';
   }) {
     if (!i.acceptedTerms) {
@@ -70,30 +58,11 @@ class UserServiceImpl {
       );
     }
 
-    let config = await authConfig();
-    if (
-      process.env.METORIAL_ENV == 'staging' &&
-      config.hasWhitelist &&
-      !whitelistExempt.some(domain => i.email.endsWith(domain))
-    ) {
-      let invite = await federationDB.userInvite.findFirst({
-        where: { email: i.email }
-      });
-
-      if (!invite) {
-        throw new ServiceError(
-          badRequestError({
-            message: `You don't have access to Metorial yet. Visit metorial.com/early-access to request access.`
-          })
-        );
-      }
-    }
-
-    return withTransaction(async db => {
+    return withTransaction(async tdb => {
       try {
-        let user = await db.enterpriseUser.create({
+        let user = await tdb.user.create({
           data: {
-            id: await FederationID.generateId('user'),
+            ...getId('user'),
 
             email: i.email,
             name: `${i.firstName} ${i.lastName}`.trim(),
@@ -103,7 +72,8 @@ class UserServiceImpl {
             type: 'user',
             owner: 'self',
             status: 'active',
-            tenantId: (await authTenant).id,
+            appOid: i.app.oid,
+            tenantOid: i.app.defaultTenantOid!,
 
             isFullyCreated: i.type === 'standard_user',
 
@@ -111,55 +81,15 @@ class UserServiceImpl {
           }
         });
 
-        await islandUserService.createUser({ user, context: i.context });
-
         await this.createEmail({
           email: i.email,
           user,
+          app: i.app,
           context: i.context,
           isForNewUser: true
         });
 
-        await this.createTermsAgreement({
-          user,
-          context: i.context,
-          terms: [terms.privacyPolicy, terms.termsOfService]
-        });
-
-        await db.userInvite.updateMany({
-          where: { email: i.email },
-          data: { status: 'accepted' }
-        });
-
-        await auditLogService.createAuditLog({
-          object: 'user',
-          action: 'create',
-          actor: { type: 'user', user },
-          target: user
-        });
-
         addAfterTransactionHook(() => userEvents.fire('create', user));
-
-        await auditLogService.createAuditLog({
-          object: 'user',
-          action: 'create',
-          target: { id: user.id, name: user.name },
-          actor: { type: 'user', user },
-          context: i.context,
-          payload: { userId: user.id }
-        });
-
-        await internalNotificationService.internalNotification({
-          actor: { type: 'user', user },
-          text: `New user signed up: ${user.name} (${user.email})`,
-          data: {
-            'User ID': user.id,
-            Name: user.name,
-            Email: user.email
-          }
-        });
-
-        createCompanyPeopleQueue.add({ userId: user.id });
 
         return user;
       } catch (e: any) {
@@ -178,9 +108,9 @@ class UserServiceImpl {
     });
   }
 
-  async listUserProfile(i: { user: EnterpriseUser }) {
-    return await federationDB.userIdentity.findMany({
-      where: { userId: i.user.id },
+  async listUserProfile(i: { user: User }) {
+    return await db.userIdentity.findMany({
+      where: { userOid: i.user.oid },
       orderBy: {
         id: 'asc'
       },
@@ -190,9 +120,9 @@ class UserServiceImpl {
     });
   }
 
-  async listUserEmails(i: { user: EnterpriseUser }) {
-    return await federationDB.userEmail.findMany({
-      where: { userId: i.user.id },
+  async listUserEmails(i: { user: User }) {
+    return await db.userEmail.findMany({
+      where: { userOid: i.user.oid },
       orderBy: {
         id: 'asc'
       }
@@ -201,15 +131,19 @@ class UserServiceImpl {
 
   async createEmail(i: {
     email: string;
-    user: EnterpriseUser;
+    user: User;
+    app: App;
     context: Context;
     isForNewUser?: boolean;
   }) {
-    let existingEmail = await federationDB.userEmail.findUnique({
-      where: { email: i.email }
+    let existingEmail = await db.userEmail.findFirst({
+      where: {
+        appOid: i.app.oid,
+        email: i.email
+      }
     });
     if (existingEmail) {
-      if (existingEmail.userId === i.user.id) {
+      if (existingEmail.userOid === i.user.oid) {
         throw new ServiceError(
           conflictError({
             message: 'This email is already associated with your account'
@@ -224,22 +158,32 @@ class UserServiceImpl {
       );
     }
 
-    return withTransaction(async db => {
+    return withTransaction(async tdb => {
       let parsedEmail = parseEmail(i.email);
 
-      let domain = await ensureEmailDomain(() => ({
-        domain: parsedEmail.domain
-      }));
+      // Ensure email domain exists
+      let domain = await tdb.emailDomain.upsert({
+        where: {
+          domain: parsedEmail.domain
+        },
+        create: {
+          ...getId('emailDomain' as any),
+          domain: parsedEmail.domain,
+          appOid: i.app.oid
+        },
+        update: {}
+      });
 
-      let email = await db.userEmail.create({
+      let email = await tdb.userEmail.create({
         data: {
-          id: await FederationID.generateId('userEmail'),
-          domainId: domain.id,
+          ...getId('userEmail'),
+          domainOid: domain.oid,
+          appOid: i.app.oid,
           email: parsedEmail.email,
           normalizedEmail: parsedEmail.normalizedEmail,
           isPrimary: i.isForNewUser,
           verifiedAt: i.isForNewUser ? new Date() : null,
-          userId: i.user.id
+          userOid: i.user.oid
         }
       });
 
@@ -247,22 +191,13 @@ class UserServiceImpl {
         await this.sendUserEmailVerification({ email });
       }
 
-      await auditLogService.createAuditLog({
-        object: 'user_email',
-        action: 'create',
-        target: { id: email.id, name: email.email },
-        actor: { type: 'user', user: i.user },
-        context: i.context,
-        payload: { email: email.email }
-      });
-
       return email;
     });
   }
 
-  async verifyUserEmail(i: { key: string; userEmailId: string }) {
-    let verification = await federationDB.userEmailVerification.findUnique({
-      where: { key: i.key, userEmailId: i.userEmailId }
+  async verifyUserEmail(i: { key: string }) {
+    let verification = await db.userEmailVerification.findFirst({
+      where: { key: i.key }
     });
 
     if (!verification) {
@@ -282,27 +217,27 @@ class UserServiceImpl {
       );
     }
 
-    return await withTransaction(async db => {
-      await db.userEmailVerification.update({
+    return await withTransaction(async tdb => {
+      await tdb.userEmailVerification.update({
         where: { key: i.key },
         data: { completedAt: new Date() }
       });
 
-      return await db.userEmail.update({
-        where: { id: verification.userEmailId },
+      return await tdb.userEmail.update({
+        where: { oid: verification.userEmailOid },
         data: { verifiedAt: new Date() }
       });
     });
   }
 
   async sendUserEmailVerification(i: { email: UserEmail }) {
-    return withTransaction(async db => {
-      let verification = await db.userEmailVerification.create({
+    return withTransaction(async tdb => {
+      let verification = await tdb.userEmailVerification.create({
         data: {
-          id: await FederationID.generateId('userEmailVerification'),
+          ...getId('userEmailVerification'),
           key: generatePlainId(30),
-          userId: i.email.userId,
-          userEmailId: i.email.id
+          userOid: i.email.userOid,
+          userEmailOid: i.email.oid
         }
       });
 
@@ -313,8 +248,8 @@ class UserServiceImpl {
     });
   }
 
-  async setPrimaryEmail(i: { email: UserEmail; user: EnterpriseUser; context: Context }) {
-    if (i.email.userId !== i.user.id) throw new Error('WTF');
+  async setPrimaryEmail(i: { email: UserEmail; user: User; context: Context }) {
+    if (i.email.userOid !== i.user.oid) throw new Error('WTF');
     if (i.email.isPrimary) return i.email;
     if (!i.email.verifiedAt) {
       throw new ServiceError(
@@ -324,48 +259,31 @@ class UserServiceImpl {
       );
     }
 
-    return withTransaction(async db => {
+    return withTransaction(async tdb => {
       // Set all emails to not primary
-      await db.userEmail.updateMany({
-        where: { userId: i.user.id },
+      await tdb.userEmail.updateMany({
+        where: { userOid: i.user.oid },
         data: { isPrimary: false }
       });
 
-      let email = await db.userEmail.update({
+      let email = await tdb.userEmail.update({
         where: { id: i.email.id },
         data: { isPrimary: true }
       });
 
-      let user = await db.enterpriseUser.update({
-        where: { id: i.user.id },
+      let user = await tdb.user.update({
+        where: { oid: i.user.oid },
         data: { email: i.email.email }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
 
-      await auditLogService.createAuditLog({
-        object: 'user_email',
-        action: 'update',
-        target: { id: email.id, name: email.email },
-        actor: { type: 'user', user: i.user },
-        context: i.context,
-        payload: { email: email.email, isPrimary: true }
-      });
-      await auditLogService.createAuditLog({
-        object: 'user',
-        action: 'update',
-        target: { id: user.id, name: user.name },
-        actor: { type: 'user', user: i.user },
-        context: i.context,
-        payload: { email: i.email.email }
-      });
-
       return email;
     });
   }
 
-  async deleteEmail(i: { email: UserEmail; user: EnterpriseUser; context: Context }) {
-    if (i.email.userId !== i.user.id) throw new Error('WTF');
+  async deleteEmail(i: { email: UserEmail; user: User; context: Context }) {
+    if (i.email.userOid !== i.user.oid) throw new Error('WTF');
     if (i.email.isPrimary) {
       throw new ServiceError(
         badRequestError({
@@ -374,78 +292,28 @@ class UserServiceImpl {
       );
     }
 
-    return withTransaction(async db => {
-      let email = await db.userEmail.delete({ where: { id: i.email.id } });
-
-      await auditLogService.createAuditLog({
-        object: 'user_email',
-        action: 'delete',
-        target: { id: email.id, name: email.email },
-        actor: { type: 'user', user: i.user },
-        context: i.context,
-        payload: { email: email.email }
-      });
+    return withTransaction(async tdb => {
+      let email = await tdb.userEmail.delete({ where: { id: i.email.id } });
 
       return email;
     });
   }
 
-  async createTermsAgreement(i: {
-    user: EnterpriseUser;
-    terms: (UserTermsType | Promise<UserTermsType>)[];
-    context: Context;
-  }) {
-    return withTransaction(async db => {
-      for (let termProm of i.terms) {
-        let term = await termProm;
-
-        await db.userTermsAgreement.create({
-          data: {
-            id: await FederationID.generateId('userTermsAgreement'),
-            userId: i.user.id,
-            typeId: term.id,
-            ip: i.context.ip,
-            ua: i.context.ua
-          }
-        });
-
-        await auditLogService.createAuditLog({
-          object: 'user_terms_agreement',
-          action: 'create',
-          target: { id: i.user.id, name: i.user.name },
-          actor: { type: 'user', user: i.user },
-          context: i.context,
-          payload: { terms: term.identifier, version: term.version }
-        });
-      }
-    });
-  }
+  // Terms agreement removed - implement if needed with proper types
 
   async updateUser(i: {
-    user: EnterpriseUser;
+    user: User;
     context: Context;
     input: {
       firstName?: string;
       lastName?: string;
       name?: string;
-      image?: EntityImage;
+      image?: any; // Use any for now, can be typed properly later
     };
   }) {
-    // if (
-    //   (!i.input.firstName && !i.input.lastName && !i.input.name) ||
-    //   (i.input.firstName === i.user.firstName &&
-    //     i.input.lastName === i.user.lastName &&
-    //     i.input.name === i.user.name) ||
-    //   (i.input.imageFileId === null && i.user.image?.type === 'default') ||
-    //   (i.user.image?.type === 'enterprise_file' &&
-    //     i.input.imageFileId === i.user.image?.fileId)
-    // ) {
-    //   return i.user;
-    // }
-
-    return withTransaction(async db => {
-      let user = await db.enterpriseUser.update({
-        where: { id: i.user.id },
+    return withTransaction(async tdb => {
+      let user = await tdb.user.update({
+        where: { oid: i.user.oid },
         data: {
           firstName: i.input.firstName,
           lastName: i.input.lastName,
@@ -454,54 +322,34 @@ class UserServiceImpl {
         }
       });
 
-      await islandUserService.updateUser({ user, context: i.context });
-
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
-
-      // await auditLogService.createAuditLog({
-      //   object: 'user',
-      //   action: 'update',
-      //   target: { id: user.id, name: user.name },
-      //   actor: { type: 'user', user },
-      //   context: i.context,
-      //   payload: {
-      //     firstName: i.input.firstName,
-      //     lastName: i.input.lastName,
-      //     name: i.input.name
-      //   }
-      // });
 
       return user;
     });
   }
 
-  async deleteUser(i: { user: EnterpriseUser; context: Context }) {
-    return withTransaction(async db => {
-      // await this.createUserAction({
-      //   user: i.user,
-      //   action: EnterpriseUserActionType.user_delete,
-      //   context: i.context
-      // });
-
-      let user = await db.enterpriseUser.update({
-        where: { id: i.user.id },
+  async deleteUser(i: { user: User; context: Context }) {
+    return withTransaction(async tdb => {
+      let user = await tdb.user.update({
+        where: { oid: i.user.oid },
         data: {
           deletedAt: new Date(),
+          status: 'deleted',
           name: `[DELETED]`,
           firstName: `[DELETED]`,
           lastName: ``,
-          email: deletedEmail.delete(i.user.email)
+          email: `deleted_${i.user.oid}@deleted.local`
         }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('delete', user!));
 
-      await db.userEmail.deleteMany({
-        where: { userId: i.user.id }
+      await tdb.userEmail.deleteMany({
+        where: { userOid: i.user.oid }
       });
 
-      await db.authDeviceUserSession.updateMany({
-        where: { userId: i.user.id },
+      await tdb.authDeviceUserSession.updateMany({
+        where: { userOid: i.user.oid },
         data: {
           loggedOutAt: new Date(),
           expiresAt: new Date()
@@ -509,15 +357,15 @@ class UserServiceImpl {
       });
 
       // Get rid of auth sessions to avoid any potential issues (e.g., logging in with the deleted user)
-      await db.authIntent.deleteMany({ where: { userId: i.user.id } });
-      await db.authAttempt.deleteMany({ where: { userId: i.user.id } });
+      await tdb.authIntent.deleteMany({ where: { userOid: i.user.oid } });
+      await tdb.authAttempt.deleteMany({ where: { userOid: i.user.oid } });
     });
   }
 
   async getUser(i: { userId: string }) {
-    let user = await federationDB.enterpriseUser.findUnique({
+    let user = await db.user.findUnique({
       where: { id: i.userId },
-      include: { emails: true }
+      include: { userEmails: true }
     });
     if (!user) throw new ServiceError(notFoundError('user', i.userId));
 
@@ -525,7 +373,7 @@ class UserServiceImpl {
   }
 
   async getManyUsersAsMap({ userIds }: { userIds: string[] }) {
-    let users = await federationDB.enterpriseUser.findMany({
+    let users = await db.user.findMany({
       where: {
         id: { in: userIds }
       }
