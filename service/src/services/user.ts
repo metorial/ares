@@ -14,6 +14,7 @@ import { userEvents } from '../events/user';
 import { getId } from '../id';
 import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
+import { auditLogService } from './auditLog';
 
 class UserServiceImpl {
   async findByEmailSafe(d: { email: string; app: App }) {
@@ -90,6 +91,14 @@ class UserServiceImpl {
         });
 
         addAfterTransactionHook(() => userEvents.fire('create', user));
+
+        auditLogService.log({
+          appOid: d.app.oid,
+          type: 'user.created',
+          userOid: user.oid,
+          ip: d.context.ip,
+          ua: d.context.ua
+        });
 
         return user;
       } catch (e: any) {
@@ -191,6 +200,17 @@ class UserServiceImpl {
         await this.sendUserEmailVerification({ email });
       }
 
+      if (!d.isForNewUser) {
+        auditLogService.log({
+          appOid: d.app.oid,
+          type: 'user.email.added',
+          userOid: d.user.oid,
+          ip: d.context.ip,
+          ua: d.context.ua,
+          metadata: { email: parsedEmail.email }
+        });
+      }
+
       return email;
     });
   }
@@ -223,10 +243,19 @@ class UserServiceImpl {
         data: { completedAt: new Date() }
       });
 
-      return await tdb.userEmail.update({
+      let email = await tdb.userEmail.update({
         where: { oid: verification.userEmailOid },
         data: { verifiedAt: new Date() }
       });
+
+      auditLogService.log({
+        appOid: email.appOid,
+        type: 'user.email.verified',
+        userOid: email.userOid,
+        metadata: { email: email.email }
+      });
+
+      return email;
     });
   }
 
@@ -278,6 +307,15 @@ class UserServiceImpl {
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
 
+      auditLogService.log({
+        appOid: user.appOid,
+        type: 'user.email.primary_changed',
+        userOid: user.oid,
+        ip: d.context.ip,
+        ua: d.context.ua,
+        metadata: { email: d.email.email }
+      });
+
       return email;
     });
   }
@@ -294,6 +332,15 @@ class UserServiceImpl {
 
     return withTransaction(async tdb => {
       let email = await tdb.userEmail.delete({ where: { id: d.email.id } });
+
+      auditLogService.log({
+        appOid: email.appOid,
+        type: 'user.email.deleted',
+        userOid: d.user.oid,
+        ip: d.context.ip,
+        ua: d.context.ua,
+        metadata: { email: email.email }
+      });
 
       return email;
     });
@@ -324,11 +371,32 @@ class UserServiceImpl {
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
 
+      auditLogService.log({
+        appOid: user.appOid,
+        type: 'user.updated',
+        userOid: user.oid,
+        ip: d.context.ip,
+        ua: d.context.ua,
+        metadata: {
+          fields: Object.keys(d.input).filter(
+            k => d.input[k as keyof typeof d.input] !== undefined
+          )
+        }
+      });
+
       return user;
     });
   }
 
   async deleteUser(d: { user: User; context: Context }) {
+    auditLogService.log({
+      appOid: d.user.appOid,
+      type: 'user.deleted',
+      userOid: d.user.oid,
+      ip: d.context.ip,
+      ua: d.context.ua
+    });
+
     return withTransaction(async tdb => {
       let user = await tdb.user.update({
         where: { oid: d.user.oid },

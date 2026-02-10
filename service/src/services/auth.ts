@@ -24,6 +24,7 @@ import { parseEmail } from '../lib/parseEmail';
 import type { OAuthCredentials } from '../lib/socials';
 import { socials } from '../lib/socials';
 import { turnstileVerifier } from '../lib/turnstile';
+import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
 import { userService } from './user';
@@ -76,6 +77,14 @@ class AuthServiceImpl {
     let email = parseEmail(d.email).email;
 
     await authBlockService.registerBlock({ email, context: d.context });
+
+    auditLogService.log({
+      appOid: d.app.oid,
+      type: 'login.email',
+      ip: d.context.ip,
+      ua: d.context.ua,
+      metadata: { email }
+    });
 
     return await withTransaction(async tdb => {
       let user = await userService.findByEmailSafe({ email, app: d.app });
@@ -220,6 +229,14 @@ class AuthServiceImpl {
     };
 
     let socialRes = await socials[d.provider].exchangeCodeForData(d.code, credentials);
+
+    auditLogService.log({
+      appOid: d.app.oid,
+      type: 'login.oauth',
+      ip: d.context.ip,
+      ua: d.context.ua,
+      metadata: { provider: d.provider }
+    });
 
     if (!socialRes.email) {
       throw new ServiceError(
@@ -422,6 +439,15 @@ class AuthServiceImpl {
 
     let user = await db.user.findUnique({ where: { oid: userIdentity.userOid! } });
     if (!user) throw new Error('User not found after SSO identity linking');
+
+    auditLogService.log({
+      appOid: d.app.oid,
+      type: 'login.sso',
+      userOid: user.oid,
+      ip: d.context.ip,
+      ua: d.context.ua,
+      metadata: { ssoConnectionId: d.ssoConnectionId }
+    });
 
     return await this.createAuthAttempt({
       user,

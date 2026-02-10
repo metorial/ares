@@ -2,6 +2,7 @@ import { ModalRoot, Toaster } from '@metorial-io/ui';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
 import { Layout } from './pages/_layout';
 import { RouterErrorPage } from './pages/_error/routerError';
+import { AuditLogsPage } from './pages/auditLogs/page';
 import { LoginPage } from './pages/login';
 import { UsersPage } from './pages/users/page';
 import { UserPage } from './pages/users/[userId]/page';
@@ -42,7 +43,8 @@ let router = createBrowserRouter([
       { path: 'apps/:appId', element: <AppPage /> },
       { path: 'apps/:appId/sso/:ssoTenantId', element: <SsoTenantPage /> },
       { path: 'tenants', element: <TenantsPage /> },
-      { path: 'tenants/:tenantId', element: <TenantPage /> }
+      { path: 'tenants/:tenantId', element: <TenantPage /> },
+      { path: 'audit-logs', element: <AuditLogsPage /> }
     ]
   }
 ]);

@@ -51,6 +51,7 @@ model User {
   userIdentities         UserIdentity[]
   userTermsAgreements    UserTermsAgreement[]
   userImpersonations     UserImpersonation[]
+  auditLogs              AuditLog[]
 
   @@unique([appOid, email])
 }

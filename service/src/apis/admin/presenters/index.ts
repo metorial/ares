@@ -1,5 +1,6 @@
 export * from './admin';
 export * from './app';
+export * from './auditLog';
 export * from './oauthProvider';
 export * from './sso';
 export * from './tenant';

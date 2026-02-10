@@ -25,6 +25,7 @@ model App {
   oauthProviders         AppOAuthProvider[]
   surfaces               AppSurface[]
   ssoTenants             SsoTenant[]
+  auditLogs              AuditLog[]
 }
 
 model AppSurface {

@@ -10,6 +10,7 @@ import type {
 import { db, withTransaction } from '../db';
 import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
+import { auditLogService } from './auditLog';
 
 class DeviceService {
   async getAllUsersForDevice(d: { device: AuthDevice }) {
@@ -136,6 +137,14 @@ class DeviceService {
         await db.user.updateMany({
           where: { oid: user!.oid },
           data: { lastLoginAt: new Date() }
+        });
+
+        auditLogService.log({
+          appOid: user!.appOid,
+          type: 'login',
+          userOid: user!.oid,
+          ip: d.authAttempt.ip,
+          ua: d.authAttempt.ua
         });
       }
 

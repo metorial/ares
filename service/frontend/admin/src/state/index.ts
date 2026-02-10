@@ -142,3 +142,17 @@ export let ssoConnectionsState = createLoader({
   },
   mutators: {}
 });
+
+export let auditLogsState = createLoader({
+  name: 'auditLogs',
+  fetch: (d: { appId: string; after?: string; type?: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.auditLog.list({
+        appId: d.appId,
+        after: d.after,
+        type: d.type
+      })
+    );
+  },
+  mutators: {}
+});

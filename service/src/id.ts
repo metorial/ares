@@ -40,7 +40,9 @@ export let ID = createIdGenerator({
   ssoAuth: idType.sorted('sau_'),
   ssoAuth_clientSecret: idType.key('sso_auth_'),
 
-  sender: idType.sorted('ssn_')
+  sender: idType.sorted('ssn_'),
+
+  auditLog: idType.sorted('aud_')
 });
 
 let workerIdBits = 12;

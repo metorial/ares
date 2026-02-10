@@ -6,6 +6,7 @@ import { db } from '../db';
 import { env } from '../env';
 import { getId } from '../id';
 import type { Context } from '../lib/context';
+import { auditLogService } from './auditLog';
 import { deviceService } from './device';
 
 let cacheTTLSecs = 60 * 5;
@@ -89,8 +90,18 @@ class SessionService {
         loggedOutAt: new Date(),
         expiresAt: new Date()
       },
-      include: { device: true }
+      include: { device: true, user: true }
     });
+
+    if (!d.session.impersonationOid) {
+      auditLogService.log({
+        appOid: res.user.appOid,
+        type: 'logout',
+        userOid: res.user.oid,
+        ip: res.device.lastIp,
+        ua: res.device.lastUa
+      });
+    }
 
     await findAuthSessionCached.clear({
       sessionId: d.session.id

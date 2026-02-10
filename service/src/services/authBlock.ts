@@ -3,6 +3,7 @@ import { Service } from '@lowerdeck/service';
 import { addMinutes, subMinutes } from 'date-fns';
 import { db } from '../db';
 import type { Context } from '../lib/context';
+import { auditLogService } from './auditLog';
 
 class AuthBlockServiceImpl {
   async checkBlocked(d: { email: string; context: Context }) {
@@ -37,14 +38,32 @@ class AuthBlockServiceImpl {
     });
 
     if (authActionsFromEmail > 15) {
+      let blockedUntil = addMinutes(new Date(), 60);
+
       await db.authBlock.create({
         data: {
-          blockedUntil: addMinutes(new Date(), 60),
+          blockedUntil,
           identifier: d.email,
           identifierType: 'email',
           ip: d.context.ip
         }
       });
+
+      let user = await db.user.findFirst({
+        where: {
+          userEmails: { some: { email: d.email } }
+        }
+      });
+
+      if (user) {
+        auditLogService.log({
+          appOid: user.appOid,
+          type: 'auth.blocked',
+          userOid: user.oid,
+          ip: d.context.ip,
+          metadata: { email: d.email, blockedUntil: blockedUntil.toISOString() }
+        });
+      }
     }
   }
 
