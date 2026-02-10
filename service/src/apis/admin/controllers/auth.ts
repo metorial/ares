@@ -1,10 +1,8 @@
-import { idAdminService } from '@metorial-enterprise/federation-id';
-import { v } from '@metorial/validation';
-import { publicApp } from '../middleware/admin';
+import { v } from '@lowerdeck/validation';
+import { adminService } from '../../../services/admin';
+import { ADMIN_SESSION_COOKIE_NAME, publicApp } from '../middleware/admin';
 
 export let authenticationController = publicApp.controller({
-  boot: publicApp.handler().do(() => idAdminService.getAdminAuthBoot()),
-
   login: publicApp
     .handler()
     .input(
@@ -14,13 +12,16 @@ export let authenticationController = publicApp.controller({
       })
     )
     .do(async ({ input, setCookie, context }) => {
-      let session = await idAdminService.adminLogin({
-        context,
+      let session = await adminService.adminLogin({
         email: input.email,
-        credentials: { type: 'password', password: input.password }
+        password: input.password,
+        context: {
+          ip: context.ip,
+          ua: context.ua ?? ''
+        }
       });
 
-      setCookie('metorial_admin_session', session.clientSecret, {
+      setCookie(ADMIN_SESSION_COOKIE_NAME, session.clientSecret, {
         path: '/',
         expires: new Date(session.expiresAt),
         httpOnly: true,

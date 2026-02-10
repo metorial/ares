@@ -14,9 +14,6 @@ let authMux = rpcMux(
               'metorial.test',
               'metorial.com',
               'metorial.work',
-              'wsx',
-              'chronos',
-              'vulcan',
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },

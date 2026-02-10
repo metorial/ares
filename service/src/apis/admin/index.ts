@@ -1,16 +1,11 @@
-import { createServer, InferClient, rpcMux } from '@metorial-enterprise/rpc';
-import { adminController } from './controller/admin';
-import { authenticationController } from './controller/auth';
-import { publicApp } from './middleware/admin';
+import { apiMux } from '@lowerdeck/api-mux';
+import { rpcMux } from '@lowerdeck/rpc-server';
+import { adminRPC } from './controllers';
+import { endpointApp } from './endpoints';
 
-let rootController = publicApp.controller({
-  authentication: authenticationController,
-  admin: adminController
-});
+export type { AdminClient } from './controllers';
 
-export let adminRPC = createServer({})(rootController);
-
-export let adminApi = rpcMux(
+let adminMux = rpcMux(
   {
     cors:
       process.env.ALLOW_CORS == 'true'
@@ -21,17 +16,12 @@ export let adminApi = rpcMux(
               'metorial.test',
               'metorial.com',
               'metorial.work',
-              'wsx',
-              'chronos',
-              'vulcan',
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },
-    path: '/metorial-admin'
+    path: '/metorial-admin/api'
   },
   [adminRPC]
 );
 
-export type AdminClient = InferClient<typeof rootController>;
-
-export * from './auth';
+export let adminApi = apiMux([{ endpoint: adminMux }], endpointApp.fetch as any);

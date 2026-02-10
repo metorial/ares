@@ -49,6 +49,34 @@ class AdminServiceImpl {
     });
   }
 
+  async adminLoginWithOAuth(d: {
+    email: string;
+    name: string;
+    context: Context;
+  }) {
+    let admin = await db.admin.upsert({
+      where: { email: d.email },
+      create: {
+        ...getId('admin'),
+        email: d.email,
+        name: d.name,
+        password: ''
+      },
+      update: {}
+    });
+
+    return await db.adminSession.create({
+      data: {
+        ...getId('adminSession'),
+        clientSecret: generatePlainId(50),
+        adminOid: admin.oid,
+        expiresAt: addHours(new Date(), 1),
+        ip: d.context.ip,
+        ua: d.context.ua
+      }
+    });
+  }
+
   async listUsers(d: { app: App; after?: string; search?: string }) {
     return await db.user.findMany({
       where: {
@@ -149,6 +177,73 @@ class AdminServiceImpl {
     }
 
     return session.admin;
+  }
+
+  async listApps(d: { after?: string; search?: string }) {
+    return await db.app.findMany({
+      where: {
+        OR: d.search
+          ? [{ slug: { contains: d.search } }, { clientId: { contains: d.search } }]
+          : undefined,
+        id: d.after ? { gt: d.after } : undefined
+      },
+      include: {
+        defaultTenant: true,
+        _count: { select: { users: true, tenants: true } }
+      },
+      take: 50,
+      orderBy: { id: 'asc' }
+    });
+  }
+
+  async getApp(d: { appId: string }) {
+    let app = await db.app.findUnique({
+      where: { id: d.appId },
+      include: {
+        defaultTenant: true,
+        tenants: true,
+        _count: { select: { users: true } }
+      }
+    });
+    if (!app) {
+      throw new ServiceError(notFoundError('app', d.appId));
+    }
+
+    return app;
+  }
+
+  async listTenants(d: { appId: string; after?: string; search?: string }) {
+    let app = await this.getApp({ appId: d.appId });
+
+    return await db.tenant.findMany({
+      where: {
+        appOid: app.oid,
+        OR: d.search
+          ? [{ slug: { contains: d.search } }, { clientId: { contains: d.search } }]
+          : undefined,
+        id: d.after ? { gt: d.after } : undefined
+      },
+      include: {
+        _count: { select: { users: true } }
+      },
+      take: 50,
+      orderBy: { id: 'asc' }
+    });
+  }
+
+  async getTenant(d: { tenantId: string }) {
+    let tenant = await db.tenant.findUnique({
+      where: { id: d.tenantId },
+      include: {
+        app: true,
+        _count: { select: { users: true } }
+      }
+    });
+    if (!tenant) {
+      throw new ServiceError(notFoundError('tenant', d.tenantId));
+    }
+
+    return tenant;
   }
 }
 

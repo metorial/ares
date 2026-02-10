@@ -30,6 +30,12 @@ export let env = createValidatedEnv({
     TURNSTILE_SECRET_KEY: v.string()
   },
 
+  admin: {
+    ADMIN_GOOGLE_CLIENT_ID: v.optional(v.string()),
+    ADMIN_GOOGLE_CLIENT_SECRET: v.optional(v.string()),
+    ADMIN_GOOGLE_REDIRECT_URI: v.optional(v.string())
+  },
+
   keys: {
     AUTH_TICKET_SECRET: v.string()
   }
