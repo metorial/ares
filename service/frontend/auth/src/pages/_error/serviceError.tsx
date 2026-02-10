@@ -1,4 +1,4 @@
-import { ServiceError } from '@metorial/error';
+import { ServiceError } from '@lowerdeck/error';
 import { ErrorPage, NotFound } from '@metorial-io/pages';
 
 export let ServiceErrorPage = ({ error }: { error: ServiceError<any> }) => {

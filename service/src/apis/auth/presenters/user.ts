@@ -1,4 +1,4 @@
-import type { User } from '../../../prisma/generated';
+import type { User } from '../../../../prisma/generated/client';
 import { deletedEmail } from '../../../lib/deletedEmail';
 import { getImageUrl } from '../../../lib/getImageUrl';
 

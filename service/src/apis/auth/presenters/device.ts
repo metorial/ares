@@ -1,8 +1,8 @@
-import type { Device, DeviceUserSession, User } from '../../../prisma/generated';
+import type { AuthDevice, AuthDeviceUserSession, User } from '../../../../prisma/generated/client';
 import { userPresenter } from './user';
 
 export let devicePresenter = async (
-  device: Device & { sessions: (DeviceUserSession & { user: User })[] }
+  device: AuthDevice & { sessions: (AuthDeviceUserSession & { user: User })[] }
 ) => ({
   object: 'ares#device',
 
@@ -13,7 +13,7 @@ export let devicePresenter = async (
   lastActiveAt: device.lastActiveAt,
 
   sessions: await Promise.all(
-    device.sessions.map(async s => ({
+    device.sessions.map(async (s: AuthDeviceUserSession & { user: User }) => ({
       object: 'ares#device.session',
 
       id: s.id,
@@ -27,7 +27,7 @@ export let devicePresenter = async (
   )
 });
 
-export let deviceLightPresenter = (device: Device) => ({
+export let deviceLightPresenter = (device: AuthDevice) => ({
   object: 'ares#device(light)',
 
   id: device.id,

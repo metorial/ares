@@ -1,10 +1,10 @@
-import type { UserEmail } from '../../../prisma/generated';
+import type { User, UserEmail } from '../../../../prisma/generated/client';
 
-export let userEmailPresenter = (userEmail: UserEmail) => ({
+export let userEmailPresenter = (userEmail: UserEmail & { user: User }) => ({
   object: 'ares#user.email',
 
   id: userEmail.id,
-  userId: userEmail.userId,
+  userId: userEmail.user.id,
 
   email: userEmail.email,
   normalizedEmail: userEmail.normalizedEmail,

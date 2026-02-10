@@ -16,16 +16,16 @@ import type { Context } from '../lib/context';
 import { parseEmail } from '../lib/parseEmail';
 
 class UserServiceImpl {
-  async findByEmailSafe(i: { email: string; app: App }) {
+  async findByEmailSafe(d: { email: string; app: App }) {
     return await db.user.findFirst({
       where: {
-        appOid: i.app.oid,
+        appOid: d.app.oid,
         OR: [
-          { email: i.email },
+          { email: d.email },
           {
             userEmails: {
               some: {
-                email: i.email,
+                email: d.email,
                 verifiedAt: { not: null }
               }
             }
@@ -35,13 +35,13 @@ class UserServiceImpl {
     });
   }
 
-  async findByEmail(i: { email: string; app: App }) {
-    let user = await this.findByEmailSafe(i);
+  async findByEmail(d: { email: string; app: App }) {
+    let user = await this.findByEmailSafe(d);
     if (!user) throw new ServiceError(notFoundError('user', null));
     return user;
   }
 
-  async createUser(i: {
+  async createUser(d: {
     email: string;
     firstName: string;
     lastName: string;
@@ -50,7 +50,7 @@ class UserServiceImpl {
     app: App;
     type: 'standard_user' | 'pre_created_user';
   }) {
-    if (!i.acceptedTerms) {
+    if (!d.acceptedTerms) {
       throw new ServiceError(
         badRequestError({
           message: 'You must accept the terms of service'
@@ -64,28 +64,28 @@ class UserServiceImpl {
           data: {
             ...getId('user'),
 
-            email: i.email,
-            name: `${i.firstName} ${i.lastName}`.trim(),
-            firstName: i.firstName,
-            lastName: i.lastName,
+            email: d.email,
+            name: `${d.firstName} ${d.lastName}`.trim(),
+            firstName: d.firstName,
+            lastName: d.lastName,
 
             type: 'user',
             owner: 'self',
             status: 'active',
-            appOid: i.app.oid,
-            tenantOid: i.app.defaultTenantOid!,
+            appOid: d.app.oid,
+            tenantOid: d.app.defaultTenantOid!,
 
-            isFullyCreated: i.type === 'standard_user',
+            isFullyCreated: d.type === 'standard_user',
 
             image: { type: 'default' }
           }
         });
 
         await this.createEmail({
-          email: i.email,
+          email: d.email,
           user,
-          app: i.app,
-          context: i.context,
+          app: d.app,
+          context: d.context,
           isForNewUser: true
         });
 
@@ -108,9 +108,9 @@ class UserServiceImpl {
     });
   }
 
-  async listUserProfile(i: { user: User }) {
+  async listUserProfile(d: { user: User }) {
     return await db.userIdentity.findMany({
-      where: { userOid: i.user.oid },
+      where: { userOid: d.user.oid },
       orderBy: {
         id: 'asc'
       },
@@ -120,16 +120,16 @@ class UserServiceImpl {
     });
   }
 
-  async listUserEmails(i: { user: User }) {
+  async listUserEmails(d: { user: User }) {
     return await db.userEmail.findMany({
-      where: { userOid: i.user.oid },
+      where: { userOid: d.user.oid },
       orderBy: {
         id: 'asc'
       }
     });
   }
 
-  async createEmail(i: {
+  async createEmail(d: {
     email: string;
     user: User;
     app: App;
@@ -138,12 +138,12 @@ class UserServiceImpl {
   }) {
     let existingEmail = await db.userEmail.findFirst({
       where: {
-        appOid: i.app.oid,
-        email: i.email
+        appOid: d.app.oid,
+        email: d.email
       }
     });
     if (existingEmail) {
-      if (existingEmail.userOid === i.user.oid) {
+      if (existingEmail.userOid === d.user.oid) {
         throw new ServiceError(
           conflictError({
             message: 'This email is already associated with your account'
@@ -159,7 +159,7 @@ class UserServiceImpl {
     }
 
     return withTransaction(async tdb => {
-      let parsedEmail = parseEmail(i.email);
+      let parsedEmail = parseEmail(d.email);
 
       // Ensure email domain exists
       let domain = await tdb.emailDomain.upsert({
@@ -169,7 +169,7 @@ class UserServiceImpl {
         create: {
           ...getId('emailDomain' as any),
           domain: parsedEmail.domain,
-          appOid: i.app.oid
+          appOid: d.app.oid
         },
         update: {}
       });
@@ -178,12 +178,12 @@ class UserServiceImpl {
         data: {
           ...getId('userEmail'),
           domainOid: domain.oid,
-          appOid: i.app.oid,
+          appOid: d.app.oid,
           email: parsedEmail.email,
           normalizedEmail: parsedEmail.normalizedEmail,
-          isPrimary: i.isForNewUser,
-          verifiedAt: i.isForNewUser ? new Date() : null,
-          userOid: i.user.oid
+          isPrimary: d.isForNewUser,
+          verifiedAt: d.isForNewUser ? new Date() : null,
+          userOid: d.user.oid
         }
       });
 
@@ -195,9 +195,9 @@ class UserServiceImpl {
     });
   }
 
-  async verifyUserEmail(i: { key: string }) {
+  async verifyUserEmail(d: { key: string }) {
     let verification = await db.userEmailVerification.findFirst({
-      where: { key: i.key }
+      where: { key: d.key }
     });
 
     if (!verification) {
@@ -219,7 +219,7 @@ class UserServiceImpl {
 
     return await withTransaction(async tdb => {
       await tdb.userEmailVerification.update({
-        where: { key: i.key },
+        where: { key: d.key },
         data: { completedAt: new Date() }
       });
 
@@ -230,28 +230,28 @@ class UserServiceImpl {
     });
   }
 
-  async sendUserEmailVerification(i: { email: UserEmail }) {
+  async sendUserEmailVerification(d: { email: UserEmail }) {
     return withTransaction(async tdb => {
       let verification = await tdb.userEmailVerification.create({
         data: {
           ...getId('userEmailVerification'),
           key: generatePlainId(30),
-          userOid: i.email.userOid,
-          userEmailOid: i.email.oid
+          userOid: d.email.userOid,
+          userEmailOid: d.email.oid
         }
       });
 
       await sendEmailVerification.send({
-        to: [i.email.email],
-        data: { key: verification.key, userEmailId: i.email.id }
+        to: [d.email.email],
+        data: { key: verification.key, userEmailId: d.email.id }
       });
     });
   }
 
-  async setPrimaryEmail(i: { email: UserEmail; user: User; context: Context }) {
-    if (i.email.userOid !== i.user.oid) throw new Error('WTF');
-    if (i.email.isPrimary) return i.email;
-    if (!i.email.verifiedAt) {
+  async setPrimaryEmail(d: { email: UserEmail; user: User; context: Context }) {
+    if (d.email.userOid !== d.user.oid) throw new Error('WTF');
+    if (d.email.isPrimary) return d.email;
+    if (!d.email.verifiedAt) {
       throw new ServiceError(
         preconditionFailedError({
           message: 'Email must be verified before setting as primary'
@@ -262,18 +262,18 @@ class UserServiceImpl {
     return withTransaction(async tdb => {
       // Set all emails to not primary
       await tdb.userEmail.updateMany({
-        where: { userOid: i.user.oid },
+        where: { userOid: d.user.oid },
         data: { isPrimary: false }
       });
 
       let email = await tdb.userEmail.update({
-        where: { id: i.email.id },
+        where: { id: d.email.id },
         data: { isPrimary: true }
       });
 
       let user = await tdb.user.update({
-        where: { oid: i.user.oid },
-        data: { email: i.email.email }
+        where: { oid: d.user.oid },
+        data: { email: d.email.email }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('update', user!));
@@ -282,9 +282,9 @@ class UserServiceImpl {
     });
   }
 
-  async deleteEmail(i: { email: UserEmail; user: User; context: Context }) {
-    if (i.email.userOid !== i.user.oid) throw new Error('WTF');
-    if (i.email.isPrimary) {
+  async deleteEmail(d: { email: UserEmail; user: User; context: Context }) {
+    if (d.email.userOid !== d.user.oid) throw new Error('WTF');
+    if (d.email.isPrimary) {
       throw new ServiceError(
         badRequestError({
           message: 'Primary email cannot be removed'
@@ -293,7 +293,7 @@ class UserServiceImpl {
     }
 
     return withTransaction(async tdb => {
-      let email = await tdb.userEmail.delete({ where: { id: i.email.id } });
+      let email = await tdb.userEmail.delete({ where: { id: d.email.id } });
 
       return email;
     });
@@ -301,7 +301,7 @@ class UserServiceImpl {
 
   // Terms agreement removed - implement if needed with proper types
 
-  async updateUser(i: {
+  async updateUser(d: {
     user: User;
     context: Context;
     input: {
@@ -313,12 +313,12 @@ class UserServiceImpl {
   }) {
     return withTransaction(async tdb => {
       let user = await tdb.user.update({
-        where: { oid: i.user.oid },
+        where: { oid: d.user.oid },
         data: {
-          firstName: i.input.firstName,
-          lastName: i.input.lastName,
-          name: i.input.name,
-          image: i.input.image
+          firstName: d.input.firstName,
+          lastName: d.input.lastName,
+          name: d.input.name,
+          image: d.input.image
         }
       });
 
@@ -328,28 +328,28 @@ class UserServiceImpl {
     });
   }
 
-  async deleteUser(i: { user: User; context: Context }) {
+  async deleteUser(d: { user: User; context: Context }) {
     return withTransaction(async tdb => {
       let user = await tdb.user.update({
-        where: { oid: i.user.oid },
+        where: { oid: d.user.oid },
         data: {
           deletedAt: new Date(),
           status: 'deleted',
           name: `[DELETED]`,
           firstName: `[DELETED]`,
           lastName: ``,
-          email: `deleted_${i.user.oid}@deleted.local`
+          email: `deleted_${d.user.oid}@deleted.local`
         }
       });
 
       await addAfterTransactionHook(() => userEvents.fire('delete', user!));
 
       await tdb.userEmail.deleteMany({
-        where: { userOid: i.user.oid }
+        where: { userOid: d.user.oid }
       });
 
       await tdb.authDeviceUserSession.updateMany({
-        where: { userOid: i.user.oid },
+        where: { userOid: d.user.oid },
         data: {
           loggedOutAt: new Date(),
           expiresAt: new Date()
@@ -357,17 +357,17 @@ class UserServiceImpl {
       });
 
       // Get rid of auth sessions to avoid any potential issues (e.g., logging in with the deleted user)
-      await tdb.authIntent.deleteMany({ where: { userOid: i.user.oid } });
-      await tdb.authAttempt.deleteMany({ where: { userOid: i.user.oid } });
+      await tdb.authIntent.deleteMany({ where: { userOid: d.user.oid } });
+      await tdb.authAttempt.deleteMany({ where: { userOid: d.user.oid } });
     });
   }
 
-  async getUser(i: { userId: string }) {
+  async getUser(d: { userId: string }) {
     let user = await db.user.findUnique({
-      where: { id: i.userId },
+      where: { id: d.userId },
       include: { userEmails: true }
     });
-    if (!user) throw new ServiceError(notFoundError('user', i.userId));
+    if (!user) throw new ServiceError(notFoundError('user', d.userId));
 
     return user;
   }

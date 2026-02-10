@@ -1,7 +1,7 @@
 import { useInterval } from '@looped/hooks';
+import { delay } from '@lowerdeck/delay';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { useForm, useMutation } from '@metorial-io/data-hooks';
-import { delay } from '@lowerdeck/delay';
 import {
   Avatar,
   Button,
@@ -60,7 +60,7 @@ export let AuthHomeScene = ({
           .required('Please enter your email')
       }),
     onSubmit: async values => {
-      if (submitting.current) return;
+      if (submitting.current || nextUrl) return;
       submitting.current = true;
 
       setLoadingSource('email');

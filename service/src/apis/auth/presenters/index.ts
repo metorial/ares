@@ -2,7 +2,6 @@ export * from './authAttempt';
 export * from './authIntent';
 export * from './device';
 export * from './deviceUser';
-export * from './handoff';
 export * from './session';
 export * from './user';
 export * from './userEmail';

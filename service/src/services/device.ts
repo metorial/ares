@@ -11,10 +11,10 @@ import { getId, snowflake } from '../id';
 import type { Context } from '../lib/context';
 
 class DeviceService {
-  async getAllUsersForDevice(i: { device: AuthDevice }) {
+  async getAllUsersForDevice(d: { device: AuthDevice }) {
     return await db.authDeviceUserSession.findMany({
       where: {
-        deviceOid: i.device.oid
+        deviceOid: d.device.oid
       },
       include: {
         user: true
@@ -25,10 +25,10 @@ class DeviceService {
     });
   }
 
-  async getLoggedInUsersForDevice(i: { device: AuthDevice }) {
+  async getLoggedInUsersForDevice(d: { device: AuthDevice }) {
     return await db.authDeviceUserSession.findMany({
       where: {
-        deviceOid: i.device.oid,
+        deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
         impersonationOid: null
@@ -42,15 +42,15 @@ class DeviceService {
     });
   }
 
-  async isLoggedInSession(i: { session: AuthDeviceUserSession }) {
+  async isLoggedInSession(d: { session: AuthDeviceUserSession }) {
     // true if session is logged in
-    return !i.session.loggedOutAt && i.session.expiresAt.getTime() > Date.now();
+    return !d.session.loggedOutAt && d.session.expiresAt.getTime() > Date.now();
   }
 
-  async getLoggedInAndLoggedOutUsersForDevice(i: { device: AuthDevice }) {
+  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
-        deviceOid: i.device.oid,
+        deviceOid: d.device.oid,
         impersonationOid: null
       },
       include: {
@@ -76,11 +76,11 @@ class DeviceService {
     return [...loggedInSessions, ...loggedOutSessionsUnique];
   }
 
-  async getSessionForLoggedInUser(i: { user: User; device: AuthDevice }) {
+  async getSessionForLoggedInUser(d: { user: User; device: AuthDevice }) {
     return await db.authDeviceUserSession.findFirst({
       where: {
-        userOid: i.user.oid,
-        deviceOid: i.device.oid,
+        userOid: d.user.oid,
+        deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
         impersonationOid: null
@@ -91,16 +91,16 @@ class DeviceService {
     });
   }
 
-  async checkIfUserIsLoggedIn(i: { user: User; device: AuthDevice }) {
-    let session = await this.getSessionForLoggedInUser(i);
+  async checkIfUserIsLoggedIn(d: { user: User; device: AuthDevice }) {
+    let session = await this.getSessionForLoggedInUser(d);
 
     return !!session;
   }
 
-  async exchangeAuthAttemptForSession(i: { authAttempt: AuthAttempt }) {
+  async exchangeAuthAttemptForSession(d: { authAttempt: AuthAttempt }) {
     return await withTransaction(async db => {
       let updateRes = await db.authAttempt.updateMany({
-        where: { id: i.authAttempt.id, status: 'pending' },
+        where: { id: d.authAttempt.id, status: 'pending' },
         data: { status: 'consumed' }
       });
       if (updateRes.count != 1) {
@@ -109,10 +109,10 @@ class DeviceService {
 
       let [device, user] = await Promise.all([
         db.authDevice.findUnique({
-          where: { oid: i.authAttempt.deviceOid }
+          where: { oid: d.authAttempt.deviceOid }
         }),
         db.user.findUnique({
-          where: { oid: i.authAttempt.userOid }
+          where: { oid: d.authAttempt.userOid }
         })
       ]);
 
@@ -122,9 +122,9 @@ class DeviceService {
       });
       if (existingSession) return existingSession;
 
-      let impersonation = i.authAttempt.userImpersonationId
+      let impersonation = d.authAttempt.userImpersonationId
         ? await db.userImpersonation.findUnique({
-            where: { id: i.authAttempt.userImpersonationId }
+            where: { id: d.authAttempt.userImpersonationId }
           })
         : null;
 
@@ -148,17 +148,17 @@ class DeviceService {
     });
   }
 
-  async getDeviceSafe(i: { deviceId: string; deviceClientSecret: string }) {
+  async getDeviceSafe(d: { deviceId: string; deviceClientSecret: string }) {
     return await db.authDevice.findFirst({
       where: {
-        id: i.deviceId,
-        clientSecret: i.deviceClientSecret
+        id: d.deviceId,
+        clientSecret: d.deviceClientSecret
       }
     });
   }
 
-  async getDevice(i: { deviceId: string; deviceClientSecret: string }) {
-    let device = await this.getDeviceSafe(i);
+  async getDevice(d: { deviceId: string; deviceClientSecret: string }) {
+    let device = await this.getDeviceSafe(d);
     if (!device) {
       throw new ServiceError(unauthorizedError({ message: 'Uninitialized device' }));
     }
@@ -166,18 +166,18 @@ class DeviceService {
     return device;
   }
 
-  async useDevice(i: { deviceId: string; deviceClientSecret: string; context: Context }) {
-    let device = await this.getDevice(i);
+  async useDevice(d: { deviceId: string; deviceClientSecret: string; context: Context }) {
+    let device = await this.getDevice(d);
     await this.recordDeviceUse({
       device,
-      context: i.context
+      context: d.context
     });
     return device;
   }
 
-  async dangerouslyGetDeviceOnlyById(i: { deviceId: string }) {
+  async dangerouslyGetDeviceOnlyById(d: { deviceId: string }) {
     let device = await db.authDevice.findFirst({
-      where: { id: i.deviceId }
+      where: { id: d.deviceId }
     });
     if (!device) {
       throw new ServiceError(unauthorizedError({ message: 'Uninitialized device' }));
@@ -186,32 +186,32 @@ class DeviceService {
     return device;
   }
 
-  async ensureDevice(i: { deviceId?: string; deviceClientSecret?: string; context: Context }) {
+  async ensureDevice(d: { deviceId?: string; deviceClientSecret?: string; context: Context }) {
     let device =
-      i.deviceClientSecret && i.deviceId
+      d.deviceClientSecret && d.deviceId
         ? await this.getDeviceSafe({
-            deviceId: i.deviceId,
-            deviceClientSecret: i.deviceClientSecret
+            deviceId: d.deviceId,
+            deviceClientSecret: d.deviceClientSecret
           })
         : undefined;
 
     if (!device) {
       device = await this.createDevice({
-        context: i.context
+        context: d.context
       });
     }
 
     await this.recordDeviceUse({
       device,
-      context: i.context
+      context: d.context
     });
     return device;
   }
 
-  async listUserSessions(i: { user: User }) {
+  async listUserSessions(d: { user: User }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
-        userOid: i.user.oid,
+        userOid: d.user.oid,
         impersonationOid: null
       },
       include: {
@@ -225,35 +225,35 @@ class DeviceService {
     return sessions;
   }
 
-  async createDevice(i: { context: Context }) {
+  async createDevice(d: { context: Context }) {
     return await db.authDevice.create({
       data: {
         ...getId('authDevice'),
         clientSecret: getId('authDevice').id,
 
-        ip: i.context.ip,
-        ua: i.context.ua,
+        ip: d.context.ip,
+        ua: d.context.ua,
 
-        lastIp: i.context.ip,
-        lastUa: i.context.ua,
+        lastIp: d.context.ip,
+        lastUa: d.context.ua,
 
         history: {
           create: {
             id: snowflake.nextId(),
-            ip: i.context.ip,
-            ua: i.context.ua
+            ip: d.context.ip,
+            ua: d.context.ua
           }
         }
       }
     });
   }
 
-  async recordDeviceUse(i: {
+  async recordDeviceUse(d: {
     device: AuthDevice;
     context: Context;
     session?: AuthDeviceUserSession;
   }) {
-    if (i.session?.impersonationOid) return false;
+    if (d.session?.impersonationOid) return false;
 
     let updateHistory = false;
     let updateDeviceLastActiveAt = false;
@@ -261,24 +261,24 @@ class DeviceService {
     let bumpSession = false;
 
     if (
-      !i.device.lastActiveAt ||
-      Date.now() - i.device.lastActiveAt.getTime() > 1000 * 60 * 60
+      !d.device.lastActiveAt ||
+      Date.now() - d.device.lastActiveAt.getTime() > 1000 * 60 * 60
     ) {
       updateDeviceLastActiveAt = true;
     }
 
-    if (i.device.lastIp != i.context.ip || i.device.lastUa != i.context.ua) {
+    if (d.device.lastIp != d.context.ip || d.device.lastUa != d.context.ua) {
       updateHistory = true;
     }
 
-    if (i.session) {
-      if (i.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5) {
+    if (d.session) {
+      if (d.session.expiresAt.getTime() - Date.now() < 1000 * 60 * 60 * 24 * 5) {
         bumpSession = true;
       }
 
       if (
-        !i.session.lastActiveAt ||
-        Date.now() - i.session.lastActiveAt.getTime() > 1000 * 60 * 60
+        !d.session.lastActiveAt ||
+        Date.now() - d.session.lastActiveAt.getTime() > 1000 * 60 * 60
       ) {
         updateSessionLastActiveAt = true;
       }
@@ -291,10 +291,10 @@ class DeviceService {
       updateSessionLastActiveAt
     ) {
       await db.authDevice.updateMany({
-        where: { id: i.device.id },
+        where: { id: d.device.id },
         data: {
-          lastIp: i.context.ip,
-          lastUa: i.context.ua,
+          lastIp: d.context.ip,
+          lastUa: d.context.ua,
           lastActiveAt: new Date()
         }
       });
@@ -303,29 +303,29 @@ class DeviceService {
         await db.authDeviceHistory.create({
           data: {
             id: snowflake.nextId(),
-            deviceOid: i.device.oid,
-            ip: i.context.ip,
-            ua: i.context.ua
+            deviceOid: d.device.oid,
+            ip: d.context.ip,
+            ua: d.context.ua
           }
         });
       }
 
-      if (i.session) {
+      if (d.session) {
         if (bumpSession) {
           await db.authDeviceUserSession.updateMany({
-            where: { id: i.session.id },
+            where: { id: d.session.id },
             data: { expiresAt: addWeeks(new Date(), 2) }
           });
         }
 
         if (updateSessionLastActiveAt) {
           await db.user.updateMany({
-            where: { oid: i.session.userOid },
+            where: { oid: d.session.userOid },
             data: { lastActiveAt: new Date() }
           });
 
           await db.authDeviceUserSession.update({
-            where: { id: i.session.id },
+            where: { id: d.session.id },
             data: { lastActiveAt: new Date() }
           });
         }

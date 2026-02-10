@@ -1,10 +1,10 @@
-import { base62 } from '@metorial/base62';
-import type { IPInfo } from '@metorial/ip-info';
+import { base62 } from '@lowerdeck/base62';
+import type { IPInfo } from '@lowerdeck/ip-info';
 import { UAParser } from 'ua-parser-js';
-import type { Device, DeviceUserSession } from '../../../prisma/generated';
+import type { AuthDevice, AuthDeviceUserSession } from '../../../../prisma/generated/client';
 
 export let sessionPresenter = (
-  session: DeviceUserSession & { device: Device },
+  session: AuthDeviceUserSession & { device: AuthDevice },
   ips: Record<string, IPInfo> = {}
 ) => {
   let ua = session.device.ua ? new UAParser(session.device.ua).getResult() : null;

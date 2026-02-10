@@ -20,7 +20,7 @@ import { CodeInput } from '../components/codeInput';
 import { AuthLayout } from '../components/layout';
 import { useNonNullable } from '../hooks/useNonNullable';
 import { authIntentState } from '../state/authIntent';
-import { IAuthIntent } from '../state/client';
+import type { IAuthIntent } from '../state/client';
 
 let CreateUserStep = ({
   authIntent,

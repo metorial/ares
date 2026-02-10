@@ -1,5 +1,6 @@
-import { badRequestError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
+import { db } from '../../../db';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
 import { authService } from '../../../services/auth';
@@ -43,9 +44,14 @@ let redirectUrlValidator = v.string({
 });
 
 export let authenticationController = publicApp.controller({
-  boot: deviceApp.handler().do(async ({ device, input }) => {
+  boot: deviceApp.handler().do(async ({ device }) => {
     let users = await deviceService.getLoggedInAndLoggedOutUsersForDevice({ device });
-    let { options } = await authService.getAuthOptions();
+
+    // Get default app - TODO: support multi-tenant apps
+    let app = await db.app.findFirst();
+    if (!app) throw new ServiceError(notFoundError('app'));
+
+    let { options } = await authService.getAuthOptions({ app });
 
     return {
       options,
@@ -54,6 +60,8 @@ export let authenticationController = publicApp.controller({
         type: 'required',
         siteKey: env.turnstile.TURNSTILE_SITE_KEY
       },
+
+      defaultRedirectUrl: app.defaultRedirectUrl,
 
       users: await Promise.all(users.map(deviceUserPresenter))
     };
@@ -91,6 +99,10 @@ export let authenticationController = publicApp.controller({
       ])
     )
     .do(async ({ context, device, input }) => {
+      // Get default app - TODO: support multi-tenant apps
+      let app = await db.app.findFirst();
+      if (!app) throw new ServiceError(notFoundError('app'));
+
       let getSSO = async (p?: { email?: string }) => ({
         type: 'hook' as const,
         url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
@@ -119,11 +131,15 @@ export let authenticationController = publicApp.controller({
         if (!email) throw new Error('WTF');
 
         let res = await authService.authWithEmail({
-          context,
+          context: {
+            ip: context.ip,
+            ua: context.ua ?? ''
+          },
           device,
           email,
           redirectUrl: input.redirectUrl,
-          captchaToken: input.type == 'email' ? input.captchaToken : undefined
+          captchaToken: input.type == 'email' ? input.captchaToken : undefined,
+          app
         });
 
         if (res.type == 'auth_attempt') {
@@ -131,9 +147,7 @@ export let authenticationController = publicApp.controller({
             type: 'auth_attempt' as const,
             authAttempt: authAttemptPresenter(res.authAttempt)
           };
-        } else if (res.type == 'sso') {
-          return await getSSO({ email });
-        } else {
+        } else if (res.type == 'auth_intent') {
           let fullAuthIntent = await authService.getAuthIntent({
             authIntentId: res.authIntent.id,
             clientSecret: res.authIntent.clientSecret
@@ -164,7 +178,10 @@ export let authenticationController = publicApp.controller({
 
       if (input.type == 'internal') {
         let res = await authService.authWithImpersonationToken({
-          context,
+          context: {
+            ip: context.ip,
+            ua: context.ua ?? ''
+          },
           device,
           impersonationClientSecret: input.token,
           redirectUrl: input.redirectUrl

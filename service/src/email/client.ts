@@ -1,4 +1,5 @@
 import { createRelayClient } from '@metorial-services/relay-client';
+import { once } from '@lowerdeck/once';
 import { env } from '../env';
 
 export let client = createRelayClient({
@@ -9,7 +10,10 @@ export let client = createRelayClient({
   }
 });
 
-export let emailIdentity = client.emailIdentity.upsert({
-  name: env.email.EMAIL_NAME,
-  email: env.email.EMAIL_ADDRESS
+// Lazily initialize email identity to avoid blocking server startup
+export let emailIdentity = once(async () => {
+  return await client.emailIdentity.upsert({
+    name: env.email.EMAIL_NAME,
+    email: env.email.EMAIL_ADDRESS
+  });
 });

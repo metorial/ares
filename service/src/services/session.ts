@@ -54,36 +54,36 @@ class SessionService {
     return findAuthSessionCached.clearByTag(user.id);
   }
 
-  async authenticate(i: {
+  async authenticate(d: {
     deviceId: string;
     deviceClientSecret: string;
     sessionId: string;
     context: Context;
   }) {
-    let res = await findAuthSessionCached(i);
+    let res = await findAuthSessionCached(d);
 
     if (
       !res ||
-      res.device.id != i.deviceId ||
-      res.device.clientSecret != i.deviceClientSecret ||
+      res.device.id != d.deviceId ||
+      res.device.clientSecret != d.deviceClientSecret ||
       res.session.expiresAt < new Date()
     )
       return null;
 
     let changed = await deviceService.recordDeviceUse({
-      context: i.context,
+      context: d.context,
       device: res.device,
       session: res.session
     });
-    if (changed) findAuthSessionCached.clear(i);
+    if (changed) findAuthSessionCached.clear(d);
 
     return res;
   }
 
-  async logout(i: { session: AuthDeviceUserSession }) {
+  async logout(d: { session: AuthDeviceUserSession }) {
     let res = await db.authDeviceUserSession.update({
       where: {
-        id: i.session.id
+        id: d.session.id
       },
       data: {
         loggedOutAt: new Date(),
@@ -93,60 +93,60 @@ class SessionService {
     });
 
     await findAuthSessionCached.clear({
-      sessionId: i.session.id
+      sessionId: d.session.id
     });
 
     return res;
   }
 
-  async getSessionSafe(i: { sessionId: string }) {
+  async getSessionSafe(d: { sessionId: string }) {
     return db.authDeviceUserSession.findUnique({
-      where: { id: i.sessionId },
+      where: { id: d.sessionId },
       include: { device: true, user: true }
     });
   }
 
-  async getUserSession(i: { user: User; sessionId: string }) {
+  async getUserSession(d: { user: User; sessionId: string }) {
     let session = await db.authDeviceUserSession.findFirst({
-      where: { id: i.sessionId, userOid: i.user.oid },
+      where: { id: d.sessionId, userOid: d.user.oid },
       include: { device: true, user: true }
     });
-    if (!session) throw new ServiceError(notFoundError('session', i.sessionId));
+    if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
 
     return session;
   }
 
-  async getImpersonationSession(i: { session: AuthDeviceUserSession }) {
+  async getImpersonationSession(d: { session: AuthDeviceUserSession }) {
     let ses = await db.authDeviceUserSession.findUnique({
-      where: { id: i.session.id },
+      where: { id: d.session.id },
       include: { impersonation: { include: { admin: true } } }
     });
 
     return ses?.impersonation;
   }
 
-  async findAdminForSession(i: { session: AuthDeviceUserSession & { user: User } }) {
+  async findAdminForSession(d: { session: AuthDeviceUserSession & { user: User } }) {
     let admin = await db.admin.findUnique({
-      where: { email: i.session.user.email }
+      where: { email: d.session.user.email }
     });
     return admin;
   }
 
-  async upsertDevAdminSession(i: { session: AuthDeviceUserSession & { user: User } }) {
+  async upsertDevAdminSession(d: { session: AuthDeviceUserSession & { user: User } }) {
     if (process.env.NODE_ENV != 'development') {
       throw new Error('NOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO');
     }
 
     let existingAdmin = await db.admin.findUnique({
-      where: { email: i.session.user.email }
+      where: { email: d.session.user.email }
     });
     if (existingAdmin) return existingAdmin;
 
     return await db.admin.upsert({
-      where: { email: i.session.user.email },
+      where: { email: d.session.user.email },
       create: {
-        email: i.session.user.email,
-        name: i.session.user.name,
+        email: d.session.user.email,
+        name: d.session.user.name,
         ...getId('admin'),
         password: ''
       },

@@ -14,12 +14,12 @@ import type { Context } from '../lib/context';
 import { authBlockService } from './authBlock';
 
 class AdminServiceImpl {
-  async adminLogin(i: { email: string; password: string; context: Context }) {
-    await authBlockService.registerBlock({ email: i.email, context: i.context });
+  async adminLogin(d: { email: string; password: string; context: Context }) {
+    await authBlockService.registerBlock({ email: d.email, context: d.context });
 
     let admin = await db.admin.findUnique({
       where: {
-        email: i.email
+        email: d.email
       }
     });
 
@@ -33,7 +33,7 @@ class AdminServiceImpl {
     if (process.env.NODE_ENV != 'development') {
       if (!admin) throw err;
 
-      let valid = await Bun.password.verify(i.password, admin.password);
+      let valid = await Bun.password.verify(d.password, admin.password);
       if (!valid) throw err;
     } else if (!admin) throw err;
 
@@ -43,35 +43,35 @@ class AdminServiceImpl {
         clientSecret: generatePlainId(50),
         adminOid: admin.oid,
         expiresAt: addHours(new Date(), 1),
-        ip: i.context.ip,
-        ua: i.context.ua
+        ip: d.context.ip,
+        ua: d.context.ua
       }
     });
   }
 
-  async listUsers(i: { app: App; after?: string; search?: string }) {
+  async listUsers(d: { app: App; after?: string; search?: string }) {
     return await db.user.findMany({
       where: {
-        appOid: i.app.oid,
-        OR: i.search
+        appOid: d.app.oid,
+        OR: d.search
           ? [
-              { userEmails: { some: { email: { contains: i.search } } } },
-              { name: { contains: i.search } },
-              { firstName: { contains: i.search } },
-              { lastName: { contains: i.search } }
+              { userEmails: { some: { email: { contains: d.search } } } },
+              { name: { contains: d.search } },
+              { firstName: { contains: d.search } },
+              { lastName: { contains: d.search } }
             ]
           : undefined,
 
-        id: i.after ? { gt: i.after } : undefined
+        id: d.after ? { gt: d.after } : undefined
       },
       take: 100,
       orderBy: { id: 'asc' }
     });
   }
 
-  async getUser(i: { userId: string }) {
+  async getUser(d: { userId: string }) {
     let user = await db.user.findUnique({
-      where: { id: i.userId },
+      where: { id: d.userId },
       include: {
         userEmails: true,
         authDeviceUserSessions: {
@@ -83,28 +83,28 @@ class AdminServiceImpl {
       }
     });
     if (!user) {
-      throw new ServiceError(notFoundError('user', i.userId));
+      throw new ServiceError(notFoundError('user', d.userId));
     }
 
     return user;
   }
 
-  async impersonateUser(i: {
+  async impersonateUser(d: {
     userId: string;
     password?: string;
     admin: Admin;
     reason: string;
   }) {
-    let user = await this.getUser({ userId: i.userId });
+    let user = await this.getUser({ userId: d.userId });
 
     // BE VERY CAREFUL WITH THIS
     if (process.env.NODE_ENV != 'development') {
-      if (i.admin.password.length) {
-        if (!i.password) {
+      if (d.admin.password.length) {
+        if (!d.password) {
           throw new ServiceError(badRequestError({ message: 'Password is required' }));
         }
 
-        let valid = await Bun.password.verify(i.password!, i.admin.password);
+        let valid = await Bun.password.verify(d.password!, d.admin.password);
         if (!valid) {
           throw new ServiceError(badRequestError({ message: 'Invalid password' }));
         }
@@ -116,30 +116,30 @@ class AdminServiceImpl {
         ...getId('userImpersonation'),
         clientSecret: generatePlainId(50),
         userOid: user.oid,
-        adminOid: i.admin.oid,
-        reason: i.reason,
+        adminOid: d.admin.oid,
+        reason: d.reason,
         expiresAt: addHours(new Date(), 1)
       }
     });
   }
 
-  async listAdmins(i: { after?: string; search?: string }) {
+  async listAdmins(d: { after?: string; search?: string }) {
     return await db.admin.findMany({
       where: {
-        OR: i.search
-          ? [{ name: { contains: i.search } }, { email: { contains: i.search } }]
+        OR: d.search
+          ? [{ name: { contains: d.search } }, { email: { contains: d.search } }]
           : undefined,
 
-        id: i.after ? { gt: i.after } : undefined
+        id: d.after ? { gt: d.after } : undefined
       },
       take: 25,
       orderBy: { id: 'asc' }
     });
   }
 
-  async authenticateAdmin(i: { clientSecret: string }) {
+  async authenticateAdmin(d: { clientSecret: string }) {
     let session = await db.adminSession.findUnique({
-      where: { clientSecret: i.clientSecret },
+      where: { clientSecret: d.clientSecret },
       include: {
         admin: true
       }

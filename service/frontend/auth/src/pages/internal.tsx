@@ -1,4 +1,3 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-frontend-config';
 import { useMutation } from '@metorial-io/data-hooks';
 import { useEffect, useRef } from 'react';
 import { authState } from '../state/auth';
@@ -16,19 +15,19 @@ export let Internal = () => {
     let parsedHash = new URLSearchParams(hash.slice(1));
     let token = parsedHash.get('token');
 
-    if (token) {
+    if (token && auth.data?.defaultRedirectUrl) {
       authenticatingRef.current = true;
 
       startAuthentication.mutate({
         type: 'internal',
         token,
-        redirectUrl: getFederationConfig().urls.microFrontends.dashboard
+        redirectUrl: auth.data.defaultRedirectUrl
       });
     }
 
     // Clear the hash
     window.location.hash = '';
-  }, []);
+  }, [auth.data?.defaultRedirectUrl]);
 
   return null;
 };

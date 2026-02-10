@@ -1,13 +1,13 @@
-import type { DeviceUserSession, User } from '../../../prisma/generated';
+import type { AuthDeviceUserSession, User } from '../../../../prisma/generated/client';
 import { userPresenter } from './user';
 
 export let deviceUserPresenter = async (
-  deviceUser: DeviceUserSession & { user: User }
+  deviceUser: AuthDeviceUserSession & { user: User }
 ) => ({
   object: 'ares#device.user',
 
   id: deviceUser.id,
-  userId: deviceUser.userId,
+  userId: deviceUser.user.id,
   loggedInAt: deviceUser.createdAt,
   loggedOutAt: deviceUser.loggedOutAt,
   lastActiveAt: deviceUser.lastActiveAt,

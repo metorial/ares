@@ -1,4 +1,4 @@
-import type { AuthAttempt } from '../../../prisma/generated';
+import type { AuthAttempt } from '../../../../prisma/generated/client';
 
 export let authAttemptPresenter = (authAttempt: AuthAttempt) => ({
   object: 'ares#auth.attempt',

@@ -1,4 +1,4 @@
-import { OTPInput, SlotProps } from 'input-otp';
+import { OTPInput, type SlotProps } from 'input-otp';
 import { styled } from 'styled-components';
 
 let Wrapper = styled('div')`

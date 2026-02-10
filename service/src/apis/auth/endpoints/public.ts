@@ -11,7 +11,7 @@ let assetsDir = path.join(process.cwd(), 'frontend', 'auth', 'dist', 'assets');
 
 let cachedIndexHtmlText: string | null = null;
 
-let indexHtml = Bun.file(join(process.cwd(), 'frontend', 'dist', 'index.html'));
+let indexHtml = Bun.file(join(process.cwd(), 'frontend', 'auth', 'dist', 'index.html'));
 
 if (!(await indexHtml.exists())) {
   throw new Error('Index HTML file not found. Make sure the frontend is built.');

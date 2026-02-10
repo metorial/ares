@@ -1,4 +1,4 @@
-import type { AuthIntent, AuthIntentCode, AuthIntentStep, UserIdentity } from '../../../prisma/generated';
+import type { AuthIntent, AuthIntentCode, AuthIntentStep, UserIdentity } from '../../../../prisma/generated/client';
 import { env } from '../../../env';
 
 let getStatus = (authIntent: AuthIntent) => {
@@ -15,7 +15,9 @@ export let authIntentPresenter = (
     userIdentity: UserIdentity | null;
   }
 ) => {
-  let sortedSteps = authIntent.steps.sort((a, b) => a.index - b.index);
+  let sortedSteps = authIntent.steps.sort(
+    (a: AuthIntentStep, b: AuthIntentStep) => a.index - b.index
+  );
   let lastVerifiedStep = [...sortedSteps].reverse().findIndex(step => step.verifiedAt);
   let nextStepIndex = lastVerifiedStep + 1;
 
@@ -35,7 +37,7 @@ export let authIntentPresenter = (
       value: authIntent.identifier
     },
 
-    steps: authIntent.steps.map((step, i) => ({
+    steps: authIntent.steps.map((step: AuthIntentStep & { codes: AuthIntentCode[] }, i: number) => ({
       object: 'ares#auth_intent.step',
 
       id: step.id,
@@ -54,7 +56,7 @@ export let authIntentPresenter = (
       updatedAt: step.updatedAt,
       verifiedAt: step.verifiedAt,
 
-      codes: step.codes.map(code => ({
+      codes: step.codes.map((code: AuthIntentCode) => ({
         object: 'ares#auth_intent.code',
 
         id: code.id,

@@ -3,7 +3,7 @@ import { rpcMux } from '@lowerdeck/rpc-server';
 import { authRPC } from './controllers';
 import { endpointApp } from './endpoints';
 
-let idApiMux = rpcMux(
+let authMux = rpcMux(
   {
     cors:
       process.env.ALLOW_CORS == 'true'
@@ -25,6 +25,4 @@ let idApiMux = rpcMux(
   [authRPC]
 );
 
-export let authApi = apiMux([{ endpoint: idApiMux }], endpointApp.fetch as any);
-
-export type { AuthClient } from './controllers';
+export let authApi = apiMux([{ endpoint: authMux }], endpointApp.fetch as any);

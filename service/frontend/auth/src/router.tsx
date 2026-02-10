@@ -1,6 +1,14 @@
 import { ModalRoot, Toaster } from '@metorial-io/ui';
+import { useEffect, useRef } from 'react';
 import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { RouterErrorPage } from './pages/_error/routerError';
+import { AuthIntent } from './pages/authIntent';
+import { EmailVerified } from './pages/emailVerified';
+import { Internal } from './pages/internal';
+import { Login } from './pages/login';
+import { Logout } from './pages/logout';
+import { Signup } from './pages/signup';
+import { Switch } from './pages/switch';
 
 let Redirect = ({ to }: { to: string }) => {
   let navigatingRef = useRef(false);

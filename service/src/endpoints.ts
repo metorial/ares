@@ -4,7 +4,7 @@ import { db } from './db';
 
 let server = Bun.serve({
   fetch: authApi,
-  port: 52050
+  port: 52120
 });
 
 // let server = Bun.serve({

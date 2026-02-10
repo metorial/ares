@@ -29,13 +29,13 @@ import { deviceService } from './device';
 import { userService } from './user';
 
 class AuthServiceImpl {
-  async getAuthOptions(i: { app: App }) {
+  async getAuthOptions(d: { app: App }) {
     let options: { type: string }[] = [{ type: 'email' }];
 
     // Query database for enabled OAuth providers for this app
     let oauthProviders = await db.appOAuthProvider.findMany({
       where: {
-        appOid: i.app.oid,
+        appOid: d.app.oid,
         enabled: true
       }
     });
@@ -49,7 +49,7 @@ class AuthServiceImpl {
     };
   }
 
-  async authWithEmail(i: {
+  async authWithEmail(d: {
     email: string;
     context: Context;
     redirectUrl: string;
@@ -57,21 +57,21 @@ class AuthServiceImpl {
     captchaToken?: string;
     app: App;
   }) {
-    if (i.captchaToken && !(await turnstileVerifier.verify({ token: i.captchaToken }))) {
+    if (d.captchaToken && !(await turnstileVerifier.verify({ token: d.captchaToken }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
 
-    let email = parseEmail(i.email).email;
+    let email = parseEmail(d.email).email;
 
-    await authBlockService.registerBlock({ email, context: i.context });
+    await authBlockService.registerBlock({ email, context: d.context });
 
     return await withTransaction(async tdb => {
-      let user = await userService.findByEmailSafe({ email, app: i.app });
+      let user = await userService.findByEmailSafe({ email, app: d.app });
 
       if (user) {
         let isLoggedIn = await deviceService.checkIfUserIsLoggedIn({
           user,
-          device: i.device
+          device: d.device
         });
 
         if (isLoggedIn) {
@@ -79,8 +79,8 @@ class AuthServiceImpl {
             type: 'auth_attempt' as const,
             authAttempt: await this.createAuthAttempt({
               user,
-              device: i.device,
-              redirectUrl: i.redirectUrl
+              device: d.device,
+              redirectUrl: d.redirectUrl
             })
           };
         }
@@ -93,19 +93,19 @@ class AuthServiceImpl {
 
           type: 'email_code',
 
-          redirectUrl: i.redirectUrl,
+          redirectUrl: d.redirectUrl,
 
           identifier: email,
           identifierType: 'email',
 
           userOid: user?.oid ?? null,
-          deviceOid: i.device.oid,
-          appOid: i.app.oid,
+          deviceOid: d.device.oid,
+          appOid: d.app.oid,
 
           expiresAt: addMinutes(new Date(), 30),
 
-          ip: i.context.ip,
-          ua: i.context.ua
+          ip: d.context.ip,
+          ua: d.context.ua
         }
       });
 
@@ -123,17 +123,17 @@ class AuthServiceImpl {
     });
   }
 
-  async authWithImpersonationToken(i: {
+  async authWithImpersonationToken(d: {
     impersonationClientSecret: string;
     context: Context;
     redirectUrl: string;
     device: AuthDevice;
   }) {
     let userImpersonation = await db.userImpersonation.findUnique({
-      where: { clientSecret: i.impersonationClientSecret },
+      where: { clientSecret: d.impersonationClientSecret },
       include: { user: true }
     });
-    if (!userImpersonation || !i.impersonationClientSecret) {
+    if (!userImpersonation || !d.impersonationClientSecret) {
       throw new ServiceError(
         badRequestError({
           message: 'Invalid impersonation token'
@@ -144,29 +144,29 @@ class AuthServiceImpl {
     return await withTransaction(async tdb => {
       return await this.createAuthAttempt({
         user: userImpersonation.user,
-        device: i.device,
-        redirectUrl: i.redirectUrl,
+        device: d.device,
+        redirectUrl: d.redirectUrl,
         userImpersonation
       });
     });
   }
 
-  async getSocialProviderAuthUrl(i: {
+  async getSocialProviderAuthUrl(d: {
     provider: 'github' | 'google';
     state: string;
     app: App;
   }) {
     let oauthProvider = await db.appOAuthProvider.findFirst({
       where: {
-        appOid: i.app.oid,
-        provider: i.provider,
+        appOid: d.app.oid,
+        provider: d.provider,
         enabled: true
       }
     });
 
     if (!oauthProvider) {
       throw new ServiceError(
-        badRequestError({ message: `${i.provider} OAuth is not configured for this app` })
+        badRequestError({ message: `${d.provider} OAuth is not configured for this app` })
       );
     }
 
@@ -176,10 +176,10 @@ class AuthServiceImpl {
       redirectUri: oauthProvider.redirectUri
     };
 
-    return socials[i.provider].getAuthUrl(i.state, credentials);
+    return socials[d.provider].getAuthUrl(d.state, credentials);
   }
 
-  async authWithSocialProviderToken(i: {
+  async authWithSocialProviderToken(d: {
     code: string;
     provider: 'github' | 'google';
     context: Context;
@@ -189,15 +189,15 @@ class AuthServiceImpl {
   }) {
     let oauthProvider = await db.appOAuthProvider.findFirst({
       where: {
-        appOid: i.app.oid,
-        provider: i.provider,
+        appOid: d.app.oid,
+        provider: d.provider,
         enabled: true
       }
     });
 
     if (!oauthProvider) {
       throw new ServiceError(
-        badRequestError({ message: `${i.provider} OAuth is not configured for this app` })
+        badRequestError({ message: `${d.provider} OAuth is not configured for this app` })
       );
     }
 
@@ -207,7 +207,7 @@ class AuthServiceImpl {
       redirectUri: oauthProvider.redirectUri
     };
 
-    let socialRes = await socials[i.provider].exchangeCodeForData(i.code, credentials);
+    let socialRes = await socials[d.provider].exchangeCodeForData(d.code, credentials);
 
     if (!socialRes.email) {
       throw new ServiceError(
@@ -217,14 +217,14 @@ class AuthServiceImpl {
 
     // Get or create user identity provider
     let identityProvider = await db.userIdentityProvider.findFirst({
-      where: { identifier: i.provider }
+      where: { identifier: d.provider }
     });
     if (!identityProvider) {
       identityProvider = await db.userIdentityProvider.create({
         data: {
           ...getId('userIdentityProvider'),
-          identifier: i.provider,
-          name: i.provider.charAt(0).toUpperCase() + i.provider.slice(1)
+          identifier: d.provider,
+          name: d.provider.charAt(0).toUpperCase() + d.provider.slice(1)
         }
       });
     }
@@ -260,7 +260,7 @@ class AuthServiceImpl {
     if (!userIdentity.userOid) {
       let user = await userService.findByEmailSafe({
         email: socialRes.email,
-        app: i.app
+        app: d.app
       });
 
       if (user) {
@@ -279,15 +279,15 @@ class AuthServiceImpl {
       user &&
       (await deviceService.checkIfUserIsLoggedIn({
         user,
-        device: i.device
+        device: d.device
       }))
     ) {
       return {
         type: 'auth_attempt' as const,
         authAttempt: await this.createAuthAttempt({
           user,
-          device: i.device,
-          redirectUrl: i.redirectUrl
+          device: d.device,
+          redirectUrl: d.redirectUrl
         })
       };
     }
@@ -300,16 +300,16 @@ class AuthServiceImpl {
         type: 'oauth',
         userIdentityOid: userIdentity.oid,
         userOid: userIdentity.userOid,
-        deviceOid: i.device.oid,
-        appOid: i.app.oid,
+        deviceOid: d.device.oid,
+        appOid: d.app.oid,
 
-        redirectUrl: i.redirectUrl,
+        redirectUrl: d.redirectUrl,
 
         identifier: socialRes.email,
         identifierType: 'email',
 
-        ip: i.context.ip,
-        ua: i.context.ua,
+        ip: d.context.ip,
+        ua: d.context.ua,
 
         verifiedAt: new Date(),
         captchaVerifiedAt: new Date(),
@@ -341,22 +341,22 @@ class AuthServiceImpl {
     });
   }
 
-  async createAuthIntentCode(i: { step: AuthIntentStep }) {
-    if (!i.step.email) throw new Error('Invalid step for code sending');
+  async createAuthIntentCode(d: { step: AuthIntentStep }) {
+    if (!d.step.email) throw new Error('Invalid step for code sending');
 
     await withTransaction(async tdb => {
       let code = await tdb.authIntentCode.create({
         data: {
           ...getId('authIntentCode'),
-          authIntentOid: i.step.authIntentOid,
-          stepOid: i.step.oid,
-          email: i.step.email!,
+          authIntentOid: d.step.authIntentOid,
+          stepOid: d.step.oid,
+          email: d.step.email!,
           code: process.env.NODE_ENV == 'development' ? '111111' : generateCode(6)
         }
       });
 
       await sendAuthCodeEmail.send({
-        to: [i.step.email!],
+        to: [d.step.email!],
         data: { code: code.code }
       });
 
@@ -364,11 +364,11 @@ class AuthServiceImpl {
     });
   }
 
-  async getAuthIntent(i: { authIntentId: string; clientSecret: string }) {
+  async getAuthIntent(d: { authIntentId: string; clientSecret: string }) {
     let authIntent = await db.authIntent.findUnique({
       where: {
-        id: i.authIntentId,
-        clientSecret: i.clientSecret,
+        id: d.authIntentId,
+        clientSecret: d.clientSecret,
         expiresAt: { gt: new Date() },
         consumedAt: null
       },
@@ -377,14 +377,14 @@ class AuthServiceImpl {
         userIdentity: true
       }
     });
-    if (!authIntent) throw new ServiceError(notFoundError('auth_intent', i.authIntentId));
+    if (!authIntent) throw new ServiceError(notFoundError('auth_intent', d.authIntentId));
 
     return authIntent;
   }
 
-  async resendAuthIntentCode(i: { authIntent: AuthIntent; step: AuthIntentStep }) {
+  async resendAuthIntentCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
     let codes = await db.authIntentCode.findMany({
-      where: { authIntentOid: i.authIntent.oid },
+      where: { authIntentOid: d.authIntent.oid },
       orderBy: { createdAt: 'desc' }
     });
     if (codes.length >= 10)
@@ -403,22 +403,22 @@ class AuthServiceImpl {
         })
       );
 
-    await this.createAuthIntentCode({ step: i.step });
+    await this.createAuthIntentCode({ step: d.step });
   }
 
-  async verifyAuthIntentStep(i: {
+  async verifyAuthIntentStep(d: {
     step: AuthIntentStep;
     input: { type: 'email_code'; code: string };
   }) {
-    if (i.step.type != 'email_code' || i.input.type != 'email_code') {
+    if (d.step.type != 'email_code' || d.input.type != 'email_code') {
       throw new ServiceError(forbiddenError({ message: 'Invalid step type' }));
     }
 
     let isCurrentStep =
       (await db.authIntentStep.count({
         where: {
-          authIntentOid: i.step.authIntentOid,
-          index: { lt: i.step.index },
+          authIntentOid: d.step.authIntentOid,
+          index: { lt: d.step.index },
           verifiedAt: null
         }
       })) == 0;
@@ -430,15 +430,15 @@ class AuthServiceImpl {
 
     let code = await db.authIntentCode.findFirst({
       where: {
-        stepOid: i.step.oid,
-        code: i.input.code
+        stepOid: d.step.oid,
+        code: d.input.code
       }
     });
     let success = !!code;
 
     if (!success) {
       let verificationAttempts = await db.authIntentVerificationAttempt.count({
-        where: { authIntentOid: i.step.authIntentOid }
+        where: { authIntentOid: d.step.authIntentOid }
       });
 
       if (verificationAttempts > 15) {
@@ -453,27 +453,27 @@ class AuthServiceImpl {
     await db.authIntentVerificationAttempt.create({
       data: {
         ...getId('authIntentVerificationAttempt'),
-        authIntentOid: i.step.authIntentOid,
-        stepId: i.step.id,
+        authIntentOid: d.step.authIntentOid,
+        stepId: d.step.id,
         status: success ? 'success' : 'failure'
       }
     });
 
     if (success) {
       await db.authIntentStep.update({
-        where: { oid: i.step.oid },
+        where: { oid: d.step.oid },
         data: { verifiedAt: new Date() }
       });
 
       let unverifiedSteps = await db.authIntentStep.count({
         where: {
-          authIntentOid: i.step.authIntentOid,
+          authIntentOid: d.step.authIntentOid,
           verifiedAt: null
         }
       });
       if (unverifiedSteps == 0) {
         await db.authIntent.update({
-          where: { oid: i.step.authIntentOid },
+          where: { oid: d.step.authIntentOid },
           data: { verifiedAt: new Date(), expiresAt: addMinutes(new Date(), 30) }
         });
       }
@@ -487,18 +487,18 @@ class AuthServiceImpl {
     }
   }
 
-  async verifyCaptcha(i: { token: string; authIntent: AuthIntent }) {
-    if (!(await turnstileVerifier.verify({ token: i.token }))) {
+  async verifyCaptcha(d: { token: string; authIntent: AuthIntent }) {
+    if (!(await turnstileVerifier.verify({ token: d.token }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
 
     await db.authIntent.update({
-      where: { oid: i.authIntent.oid },
+      where: { oid: d.authIntent.oid },
       data: { captchaVerifiedAt: new Date() }
     });
   }
 
-  async createUserForAuthIntent(i: {
+  async createUserForAuthIntent(d: {
     authIntent: AuthIntent;
     input: {
       firstName: string;
@@ -507,11 +507,11 @@ class AuthServiceImpl {
     };
     app: App;
   }) {
-    if (!i.authIntent.verifiedAt || i.authIntent.userOid) {
+    if (!d.authIntent.verifiedAt || d.authIntent.userOid) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
 
-    if (!i.input.acceptedTerms) {
+    if (!d.input.acceptedTerms) {
       throw new ServiceError(
         forbiddenError({
           message: 'You must accept the terms of service to continue'
@@ -519,10 +519,10 @@ class AuthServiceImpl {
       );
     }
 
-    let user = i.authIntent.identifier
+    let user = d.authIntent.identifier
       ? await userService.findByEmailSafe({
-          email: i.authIntent.identifier,
-          app: i.app
+          email: d.authIntent.identifier,
+          app: d.app
         })
       : null;
 
@@ -531,16 +531,16 @@ class AuthServiceImpl {
         user = await userService.updateUser({
           user,
           input: {
-            firstName: i.input.firstName,
-            lastName: i.input.lastName
+            firstName: d.input.firstName,
+            lastName: d.input.lastName
           },
           context: {
-            ip: i.authIntent.ip,
-            ua: i.authIntent.ua ?? ''
+            ip: d.authIntent.ip,
+            ua: d.authIntent.ua ?? ''
           }
         });
       } else {
-        if (!i.authIntent.identifier) {
+        if (!d.authIntent.identifier) {
           throw new ServiceError(
             badRequestError({
               message: 'Cannot create user without email identifier'
@@ -549,21 +549,21 @@ class AuthServiceImpl {
         }
 
         user = await userService.createUser({
-          email: i.authIntent.identifier,
-          firstName: i.input.firstName,
-          lastName: i.input.lastName,
-          acceptedTerms: i.input.acceptedTerms,
+          email: d.authIntent.identifier,
+          firstName: d.input.firstName,
+          lastName: d.input.lastName,
+          acceptedTerms: d.input.acceptedTerms,
           type: 'standard_user',
           context: {
-            ip: i.authIntent.ip,
-            ua: i.authIntent.ua ?? ''
+            ip: d.authIntent.ip,
+            ua: d.authIntent.ua ?? ''
           },
-          app: i.app
+          app: d.app
         });
       }
 
       await tdb.authIntent.update({
-        where: { oid: i.authIntent.oid },
+        where: { oid: d.authIntent.oid },
         data: { userOid: user.oid }
       });
 
@@ -571,7 +571,7 @@ class AuthServiceImpl {
     });
   }
 
-  async createAuthAttempt(i: {
+  async createAuthAttempt(d: {
     user: User;
     device: AuthDevice;
     authIntent?: AuthIntent;
@@ -586,34 +586,34 @@ class AuthServiceImpl {
 
           status: 'pending',
 
-          userOid: i.user.oid,
-          deviceOid: i.device.oid,
-          appOid: i.user.appOid,
+          userOid: d.user.oid,
+          deviceOid: d.device.oid,
+          appOid: d.user.appOid,
 
-          redirectUrl: i.redirectUrl,
-          authIntentOid: i.authIntent?.oid ?? null,
-          userImpersonationId: i.userImpersonation?.id ?? null,
+          redirectUrl: d.redirectUrl,
+          authIntentOid: d.authIntent?.oid ?? null,
+          userImpersonationId: d.userImpersonation?.id ?? null,
 
-          ip: i.device.ip,
-          ua: i.device.ua ?? ''
+          ip: d.device.ip,
+          ua: d.device.ua ?? ''
         }
       });
     });
   }
 
-  async completeAuthIntent(i: { authIntent: AuthIntent; app: App }) {
+  async completeAuthIntent(d: { authIntent: AuthIntent; app: App }) {
     if (
-      !i.authIntent.captchaVerifiedAt ||
-      !i.authIntent.verifiedAt ||
-      !i.authIntent.userOid ||
-      i.authIntent.consumedAt
+      !d.authIntent.captchaVerifiedAt ||
+      !d.authIntent.verifiedAt ||
+      !d.authIntent.userOid ||
+      d.authIntent.consumedAt
     ) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
 
     let [user, device] = await Promise.all([
-      db.user.findUnique({ where: { oid: i.authIntent.userOid } }),
-      db.authDevice.findUnique({ where: { oid: i.authIntent.deviceOid } })
+      db.user.findUnique({ where: { oid: d.authIntent.userOid } }),
+      db.authDevice.findUnique({ where: { oid: d.authIntent.deviceOid } })
     ]);
     if (!user || !device) throw new Error('WTF - Invalid auth intent state');
 
@@ -621,7 +621,7 @@ class AuthServiceImpl {
       await successfulLoginVerification.send({
         data: {
           user,
-          authIntent: i.authIntent
+          authIntent: d.authIntent
         },
         to: [user.email]
       });
@@ -629,40 +629,40 @@ class AuthServiceImpl {
 
     return withTransaction(async tdb => {
       await tdb.authIntent.update({
-        where: { oid: i.authIntent.oid },
+        where: { oid: d.authIntent.oid },
         data: { consumedAt: new Date(), expiresAt: new Date() }
       });
 
       return await this.createAuthAttempt({
-        authIntent: i.authIntent,
-        redirectUrl: i.authIntent.redirectUrl,
+        authIntent: d.authIntent,
+        redirectUrl: d.authIntent.redirectUrl,
         user,
         device
       });
     });
   }
 
-  async getAuthAttempt(i: { authAttemptId: string; clientSecret: string }) {
+  async getAuthAttempt(d: { authAttemptId: string; clientSecret: string }) {
     let authAttempt = await db.authAttempt.findUnique({
       where: {
-        id: i.authAttemptId,
-        clientSecret: i.clientSecret,
+        id: d.authAttemptId,
+        clientSecret: d.clientSecret,
         createdAt: { gt: subMinutes(new Date(), 1) }
       }
     });
-    if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', i.authAttemptId));
+    if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
 
     return authAttempt;
   }
 
-  async dangerouslyGetAuthAttemptOnlyById(i: { authAttemptId: string }) {
+  async dangerouslyGetAuthAttemptOnlyById(d: { authAttemptId: string }) {
     let authAttempt = await db.authAttempt.findUnique({
       where: {
-        id: i.authAttemptId,
+        id: d.authAttemptId,
         createdAt: { gt: subMinutes(new Date(), 1) }
       }
     });
-    if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', i.authAttemptId));
+    if (!authAttempt) throw new ServiceError(notFoundError('auth_attempt', d.authAttemptId));
 
     return authAttempt;
   }

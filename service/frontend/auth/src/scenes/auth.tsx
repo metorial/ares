@@ -1,17 +1,20 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-frontend-config';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { authState } from '../state/auth';
 import { AuthHomeScene } from './authHome';
 import { AuthIntentScene } from './authIntent';
 
 export let AuthScene = ({ type }: { type: 'login' | 'signup' | 'switch' }) => {
   let [searchParams] = useSearchParams();
+  let auth = authState.use({});
+
   let email = searchParams.get('email');
   let nextUrl =
     searchParams.get('nextUrl') ??
     searchParams.get('next_url') ??
     searchParams.get('redirect_url') ??
-    searchParams.get('redirect_uri');
+    searchParams.get('redirect_uri') ??
+    auth.data?.defaultRedirectUrl;
   let sessionOrUserId = searchParams.get('user_id') ?? searchParams.get('session_id');
 
   if (!email && nextUrl) {
@@ -32,7 +35,7 @@ export let AuthScene = ({ type }: { type: 'login' | 'signup' | 'switch' }) => {
 
   return (
     <AuthHomeScene
-      nextUrl={nextUrl ?? getFederationConfig().urls.microFrontends.dashboard}
+      nextUrl={nextUrl ?? 'https://metorial.com'}
       email={email ?? undefined}
       type={type}
       setAuthIntent={setAuthIntent}

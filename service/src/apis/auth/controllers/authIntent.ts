@@ -114,9 +114,10 @@ export let authIntentController = publicApp.controller({
         })
       })
     )
-    .do(async ({ authIntent, input }) => {
+    .do(async ({ authIntent, app, input }) => {
       await authService.createUserForAuthIntent({
         authIntent,
+        app,
         input: {
           firstName: input.input.firstName,
           lastName: input.input.lastName,

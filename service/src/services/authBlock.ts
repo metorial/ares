@@ -5,13 +5,13 @@ import { db } from '../db';
 import type { Context } from '../lib/context';
 
 class AuthBlockServiceImpl {
-  async checkBlocked(i: { email: string; context: Context }) {
+  async checkBlocked(d: { email: string; context: Context }) {
     let block = await db.authBlock.findFirst({
       where: {
         blockedUntil: { gt: new Date() },
         OR: [
           {
-            identifier: i.email,
+            identifier: d.email,
             identifierType: 'email'
           }
         ]
@@ -27,10 +27,10 @@ class AuthBlockServiceImpl {
     }
   }
 
-  async blockIfNeeded(i: { email: string; context: Context }) {
+  async blockIfNeeded(d: { email: string; context: Context }) {
     let authActionsFromEmail = await db.authIntent.count({
       where: {
-        identifier: i.email,
+        identifier: d.email,
         identifierType: 'email',
         createdAt: { gt: subMinutes(new Date(), 10) }
       }
@@ -40,17 +40,17 @@ class AuthBlockServiceImpl {
       await db.authBlock.create({
         data: {
           blockedUntil: addMinutes(new Date(), 60),
-          identifier: i.email,
+          identifier: d.email,
           identifierType: 'email',
-          ip: i.context.ip
+          ip: d.context.ip
         }
       });
     }
   }
 
-  async registerBlock(i: { email: string; context: Context }) {
-    await this.checkBlocked(i);
-    await this.blockIfNeeded(i);
+  async registerBlock(d: { email: string; context: Context }) {
+    await this.checkBlocked(d);
+    await this.blockIfNeeded(d);
   }
 }
 

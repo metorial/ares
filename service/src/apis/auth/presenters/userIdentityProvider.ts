@@ -1,4 +1,4 @@
-import type { UserIdentityProvider } from '../../../prisma/generated';
+import type { UserIdentityProvider } from '../../../../prisma/generated/client';
 
 export let userIdentityProviderPresenter = (provider: UserIdentityProvider) => ({
   object: 'ares#user.identity.provider',
