@@ -104,3 +104,31 @@ export let tenantState = createLoader({
   },
   mutators: {}
 });
+
+export let ssoTenantsState = createLoader({
+  name: 'ssoTenants',
+  fetch: (d: { appId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.sso.listTenants({ appId: d.appId })
+    );
+  },
+  mutators: {}
+});
+
+export let ssoTenantState = createLoader({
+  name: 'ssoTenant',
+  fetch: (d: { id: string }) => {
+    return redirectToAuthIfNotAuthenticated(() => adminClient.sso.getTenant({ id: d.id }));
+  },
+  mutators: {}
+});
+
+export let ssoConnectionsState = createLoader({
+  name: 'ssoConnections',
+  fetch: (d: { tenantId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.sso.listConnections({ tenantId: d.tenantId })
+    );
+  },
+  mutators: {}
+});

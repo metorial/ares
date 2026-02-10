@@ -8,6 +8,7 @@ import { UserPage } from './pages/users/[userId]/page';
 import { AdminsPage } from './pages/admin/page';
 import { AppsPage } from './pages/apps/page';
 import { AppPage } from './pages/apps/[appId]/page';
+import { SsoTenantPage } from './pages/apps/[appId]/sso/[ssoTenantId]/page';
 import { TenantsPage } from './pages/tenants/page';
 import { TenantPage } from './pages/tenants/[tenantId]/page';
 
@@ -39,6 +40,7 @@ let router = createBrowserRouter([
       { path: 'admins', element: <AdminsPage /> },
       { path: 'apps', element: <AppsPage /> },
       { path: 'apps/:appId', element: <AppPage /> },
+      { path: 'apps/:appId/sso/:ssoTenantId', element: <SsoTenantPage /> },
       { path: 'tenants', element: <TenantsPage /> },
       { path: 'tenants/:tenantId', element: <TenantPage /> }
     ]

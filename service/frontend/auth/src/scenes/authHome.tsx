@@ -318,7 +318,7 @@ export let AuthHomeScene = ({
                 loading={startAuthentication.isLoading && loadingSource == option.type}
                 disabled={startAuthentication.isLoading}
               >
-                {name}
+                SSO - {name}
               </Button>
             </Fragment>
           );
