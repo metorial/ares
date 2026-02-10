@@ -2,6 +2,9 @@ export let normalizeEmail = (email: string) => {
   email = email.toLowerCase().trim();
 
   let [local, domain] = email.split('@');
+  if (!local || !domain) {
+    throw new Error('Invalid email');
+  }
 
   if (domain === 'googlemail.com') domain = 'gmail.com';
 

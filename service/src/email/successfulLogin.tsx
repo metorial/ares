@@ -1,19 +1,19 @@
-import { AuthIntent, EnterpriseUser } from '@metorial-enterprise/federation-data';
+import { ipInfo } from '@lowerdeck/ip-info';
 import {
   createEmail,
   createTemplate,
   DataList,
   Layout,
   Text
-} from '@metorial-enterprise/federation-email';
-import { ipInfo } from '@metorial/ip-info';
-import React from 'react';
+} from '@metorial-services/relay-client';
+import type { User } from '@sentry/bun';
 import { UAParser } from 'ua-parser-js';
-import { notificationClient } from './client';
+import type { AuthIntent } from '../../prisma/generated/client';
+import { client, emailIdentity } from './client';
 
-export let successfulLoginVerification = notificationClient.createTemplate(
+export let successfulLoginVerification = client.createTemplate(
   createTemplate({
-    render: async ({ authIntent, user }: { authIntent: AuthIntent; user: EnterpriseUser }) => {
+    render: async ({ authIntent, user }: { authIntent: AuthIntent; user: User }) => {
       let ua = authIntent.ua ? new UAParser(authIntent.ua).getResult() : undefined;
       let geo = await ipInfo.getSafe(authIntent.ip);
 
@@ -75,5 +75,6 @@ export let successfulLoginVerification = notificationClient.createTemplate(
         )
       });
     }
-  })
+  }),
+  emailIdentity
 );

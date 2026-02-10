@@ -1,15 +1,14 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-config';
 import {
   Button,
   createEmail,
   createTemplate,
   Layout,
   Text
-} from '@metorial-enterprise/federation-email';
-import React from 'react';
-import { notificationClient } from './client';
+} from '@metorial-services/relay-client';
+import { env } from '../env';
+import { client, emailIdentity } from './client';
 
-export let sendEmailVerification = notificationClient.createTemplate(
+export let sendEmailVerification = client.createTemplate(
   createTemplate({
     render: ({ key, userEmailId }: { key: string; userEmailId: string }) =>
       createEmail({
@@ -21,10 +20,7 @@ export let sendEmailVerification = notificationClient.createTemplate(
             description="Click the button below to verify your email address with Metorial."
           >
             <Button
-              href={getFederationConfig().access.urls.getUserEmailVerifyLink({
-                id: userEmailId,
-                key
-              })}
+              href={`${env.service.ARES_AUTH_URL}/verify-email?key=${key}&email_id=${userEmailId}`}
             >
               Verify email
             </Button>
@@ -36,5 +32,6 @@ export let sendEmailVerification = notificationClient.createTemplate(
           </Layout>
         )
       })
-  })
+  }),
+  emailIdentity
 );

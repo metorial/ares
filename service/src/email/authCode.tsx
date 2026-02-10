@@ -4,11 +4,10 @@ import {
   createTemplate,
   Layout,
   Text
-} from '@metorial-enterprise/federation-email';
-import React from 'react';
-import { notificationClient } from './client';
+} from '@metorial-services/relay-client';
+import { client, emailIdentity } from './client';
 
-export let sendAuthCodeEmail = notificationClient.createTemplate(
+export let sendAuthCodeEmail = client.createTemplate(
   createTemplate({
     render: ({ code }: { code: string }) => {
       let splitCode = code;
@@ -36,5 +35,6 @@ export let sendAuthCodeEmail = notificationClient.createTemplate(
         )
       });
     }
-  })
+  }),
+  emailIdentity
 );

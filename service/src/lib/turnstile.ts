@@ -1,5 +1,4 @@
-import { getFederationConfig } from '@metorial-enterprise/federation-config';
-import { getSentry } from '@metorial/sentry';
+import { getSentry } from '@lowerdeck/sentry';
 
 let Sentry = getSentry();
 
@@ -34,6 +33,4 @@ export class TurnstileVerifier {
   }
 }
 
-export let turnstileVerifier = new TurnstileVerifier(
-  getFederationConfig().access.turnstile.invisible.secretKey
-);
+export let turnstileVerifier = new TurnstileVerifier(process.env.TURNSTILE_SECRET_KEY || '');

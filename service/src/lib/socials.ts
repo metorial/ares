@@ -1,13 +1,19 @@
-import { env } from '../env';
+export type OAuthProvider = 'google' | 'github';
+
+export type OAuthCredentials = {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+};
 
 export let socials = {
   google: {
-    id: 'google',
+    id: 'google' as const,
     name: 'Google',
-    getAuthUrl(state: string) {
+    getAuthUrl(state: string, credentials: OAuthCredentials) {
       let url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
-      url.searchParams.append('client_id', env.oauth.OAUTH_GOOGLE_CLIENT_ID!);
-      url.searchParams.append('redirect_uri', env.oauth.OAUTH_GOOGLE_REDIRECT_URI!);
+      url.searchParams.append('client_id', credentials.clientId);
+      url.searchParams.append('redirect_uri', credentials.redirectUri);
       url.searchParams.append('response_type', 'code');
       url.searchParams.append('scope', 'openid email profile');
       url.searchParams.append('access_type', 'offline');
@@ -15,13 +21,13 @@ export let socials = {
       url.searchParams.append('state', state);
       return url.toString();
     },
-    async exchangeCodeForData(code: string) {
+    async exchangeCodeForData(code: string, credentials: OAuthCredentials) {
       let tokenData = (await fetch('https://oauth2.googleapis.com/token', {
         body: new URLSearchParams({
           code,
-          client_id: env.oauth.OAUTH_GOOGLE_CLIENT_ID!,
-          client_secret: env.oauth.OAUTH_GOOGLE_CLIENT_SECRET!,
-          redirect_uri: env.oauth.OAUTH_GOOGLE_REDIRECT_URI!,
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+          redirect_uri: credentials.redirectUri,
           grant_type: 'authorization_code'
         }),
         headers: {
@@ -62,28 +68,28 @@ export let socials = {
   },
 
   github: {
-    id: 'github',
+    id: 'github' as const,
     name: 'Github',
-    getAuthUrl(state: string) {
+    getAuthUrl(state: string, credentials: OAuthCredentials) {
       let url = new URL('https://github.com/login/oauth/authorize');
-      url.searchParams.append('client_id', env.oauth.OAUTH_GITHUB_CLIENT_ID!);
-      url.searchParams.append('redirect_uri', env.oauth.OAUTH_GITHUB_REDIRECT_URI!);
+      url.searchParams.append('client_id', credentials.clientId);
+      url.searchParams.append('redirect_uri', credentials.redirectUri);
       url.searchParams.append('scope', 'user:email');
       url.searchParams.append('state', state);
       return url.toString();
     },
-    async exchangeCodeForData(code: string) {
+    async exchangeCodeForData(code: string, credentials: OAuthCredentials) {
       let tokenDataString = await fetch('https://github.com/login/oauth/access_token', {
         body: new URLSearchParams({
           code,
-          client_id: env.oauth.OAUTH_GITHUB_CLIENT_ID!,
-          client_secret: env.oauth.OAUTH_GITHUB_CLIENT_SECRET!,
-          redirect_uri: env.oauth.OAUTH_GITHUB_REDIRECT_URI!
+          client_id: credentials.clientId,
+          client_secret: credentials.clientSecret,
+          redirect_uri: credentials.redirectUri
         }),
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
           Accept: 'application/json',
-          'User-Agent': 'Metorial (https://metorial.com)'
+          'User-Agent': 'Ares Auth Service'
         },
         method: 'POST'
       }).then(res => res.text());
@@ -97,13 +103,13 @@ export let socials = {
       let accountDataString = await fetch('https://api.github.com/user', {
         headers: {
           Authorization: `Bearer ${tokenData.access_token}`,
-          'User-Agent': 'Metorial (https://metorial.com)'
+          'User-Agent': 'Ares Auth Service'
         }
       }).then(res => res.text());
 
       let accountData = JSON.parse(accountDataString) as {
         id: string;
-        email: string;
+        email?: string;
         name: string;
         avatar_url: string;
         login: string;
@@ -113,14 +119,14 @@ export let socials = {
         let emailDataString = await fetch('https://api.github.com/user/emails', {
           headers: {
             Authorization: `Bearer ${tokenData.access_token}`,
-            'User-Agent': 'Metorial (https://metorial.com)'
+            'User-Agent': 'Ares Auth Service'
           }
         }).then(res => res.text());
 
         let emailData = JSON.parse(emailDataString) as { email: string; primary: boolean }[];
 
         accountData.email =
-          emailData.find(email => email.primary)?.email || emailData[0].email;
+          emailData.find(email => email.primary)?.email || emailData[0]?.email;
       }
 
       if (!accountData.email) throw new Error('No email');

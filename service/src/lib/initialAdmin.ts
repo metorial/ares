@@ -1,52 +1,57 @@
-import { federationDB, FederationID } from '@metorial-enterprise/federation-data';
-import { delay } from '@metorial/delay';
-import { env } from '../env';
+import { db } from '../db';
+import { getId } from '../id';
 
-let INITIAL_ADMIN_EMAIL = 'admin@metorial.com';
-let INITIAL_ADMIN_PASSWORD = 'metorial';
+let INITIAL_ADMIN_EMAIL = 'admin@localhost';
+let INITIAL_ADMIN_PASSWORD = 'admin123';
 
+// This creates an initial admin user on first startup for local development
+// The initial admin is automatically deleted once another admin is created
 (async () => {
-  if (env.metorialGoogle.METORIAL_INTERNAL_GOOGLE_CLIENT_ID) return;
+  if (process.env.NODE_ENV !== 'development') return;
 
-  let initialAdmin = await federationDB.admin.findFirst({
+  let initialAdmin = await db.admin.findFirst({
     where: { email: INITIAL_ADMIN_EMAIL }
   });
-  let otherUser = await federationDB.admin.findFirst({
+  let otherUser = await db.admin.findFirst({
     where: { email: { not: INITIAL_ADMIN_EMAIL } }
   });
 
   if (!otherUser && !initialAdmin) {
-    initialAdmin = await federationDB.admin.upsert({
+    initialAdmin = await db.admin.upsert({
       where: {
         email: INITIAL_ADMIN_EMAIL
       },
       create: {
-        id: await FederationID.generateId('admin'),
+        ...getId('admin'),
         email: INITIAL_ADMIN_EMAIL,
-        name: 'Metorial Admin',
+        name: 'Initial Admin',
         password: await Bun.password.hash(INITIAL_ADMIN_PASSWORD)
       },
       update: {}
     });
+
+    console.log(`[InitialAdmin] Created initial admin: ${INITIAL_ADMIN_EMAIL} / ${INITIAL_ADMIN_PASSWORD}`);
   }
 
+  // Auto-cleanup once another admin is created
   while (initialAdmin) {
-    otherUser = await federationDB.admin.findFirst({
+    await new Promise(resolve => setTimeout(resolve, 30000)); // Wait 30 seconds
+
+    otherUser = await db.admin.findFirst({
       where: { email: { not: INITIAL_ADMIN_EMAIL } }
     });
 
     if (otherUser) {
-      await federationDB.adminSession.deleteMany({
-        where: { adminId: initialAdmin.id }
+      await db.adminSession.deleteMany({
+        where: { adminOid: initialAdmin.oid }
       });
-      await federationDB.admin.deleteMany({
-        where: { id: initialAdmin.id }
+      await db.admin.deleteMany({
+        where: { oid: initialAdmin.oid }
       });
-      initialAdmin = null;
 
+      console.log('[InitialAdmin] Deleted initial admin after other admin was created');
+      initialAdmin = null;
       break;
     }
-
-    await delay(1000 * 30);
   }
 })().catch(console.error);
