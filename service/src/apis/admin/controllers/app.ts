@@ -1,4 +1,5 @@
 import { v } from '@lowerdeck/validation';
+import { db } from '../../../db';
 import { adminService } from '../../../services/admin';
 import { adminApp } from '../middleware/admin';
 import { appPresenter } from '../presenters';
@@ -54,5 +55,27 @@ export let appController = adminApp.controller({
     .do(async ({ input }) => {
       let app = await adminService.updateApp({ appId: input.id, slug: input.slug });
       return appPresenter(app);
+    }),
+
+  listSurfaces: adminApp
+    .handler()
+    .input(
+      v.object({
+        appId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.getApp({ appId: input.appId });
+      let surfaces = await db.appSurface.findMany({
+        where: { appOid: app.oid },
+        orderBy: { createdAt: 'desc' }
+      });
+      return surfaces.map(s => ({
+        object: 'ares#appSurface' as const,
+        id: s.id,
+        clientId: s.clientId,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt
+      }));
     })
 });

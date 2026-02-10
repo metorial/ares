@@ -156,3 +156,53 @@ export let auditLogsState = createLoader({
   },
   mutators: {}
 });
+
+export let accessGroupsState = createLoader({
+  name: 'accessGroups',
+  fetch: (d: { appId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.accessGroup.list({ appId: d.appId })
+    );
+  },
+  mutators: {}
+});
+
+export let accessGroupState = createLoader({
+  name: 'accessGroup',
+  fetch: (d: { id: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.accessGroup.get({ id: d.id })
+    );
+  },
+  mutators: {}
+});
+
+export let appSurfacesState = createLoader({
+  name: 'appSurfaces',
+  fetch: (d: { appId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.app.listSurfaces({ appId: d.appId })
+    );
+  },
+  mutators: {}
+});
+
+export let appAccessGroupAssignmentsState = createLoader({
+  name: 'appAccessGroupAssignments',
+  fetch: (d: { appId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.accessGroup.listAppAssignments({ appId: d.appId })
+    );
+  },
+  mutators: {}
+});
+
+export let surfaceAccessGroupAssignmentsState = createLoader({
+  name: 'surfaceAccessGroupAssignments',
+  fetch: (d: { surfaceId: string }) => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.accessGroup.listSurfaceAssignments({ surfaceId: d.surfaceId })
+    );
+  },
+  mutators: {}
+});

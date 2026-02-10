@@ -1,3 +1,4 @@
+export * from './accessGroup';
 export * from './admin';
 export * from './app';
 export * from './auditLog';

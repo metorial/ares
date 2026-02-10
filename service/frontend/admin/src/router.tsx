@@ -10,6 +10,8 @@ import { AdminsPage } from './pages/admin/page';
 import { AppsPage } from './pages/apps/page';
 import { AppPage } from './pages/apps/[appId]/page';
 import { SsoTenantPage } from './pages/apps/[appId]/sso/[ssoTenantId]/page';
+import { AccessGroupsPage } from './pages/apps/[appId]/accessGroups/page';
+import { AccessGroupPage } from './pages/apps/[appId]/accessGroups/[accessGroupId]/page';
 import { TenantsPage } from './pages/tenants/page';
 import { TenantPage } from './pages/tenants/[tenantId]/page';
 
@@ -42,6 +44,8 @@ let router = createBrowserRouter([
       { path: 'apps', element: <AppsPage /> },
       { path: 'apps/:appId', element: <AppPage /> },
       { path: 'apps/:appId/sso/:ssoTenantId', element: <SsoTenantPage /> },
+      { path: 'apps/:appId/access-groups', element: <AccessGroupsPage /> },
+      { path: 'apps/:appId/access-groups/:accessGroupId', element: <AccessGroupPage /> },
       { path: 'tenants', element: <TenantsPage /> },
       { path: 'tenants/:tenantId', element: <TenantPage /> },
       { path: 'audit-logs', element: <AuditLogsPage /> }

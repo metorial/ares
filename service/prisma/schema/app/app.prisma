@@ -26,6 +26,8 @@ model App {
   surfaces               AppSurface[]
   ssoTenants             SsoTenant[]
   auditLogs              AuditLog[]
+  accessGroups           AccessGroup[]
+  accessGroupAssignments AccessGroupAssignment[]
 }
 
 model AppSurface {
@@ -39,4 +41,6 @@ model AppSurface {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+
+  accessGroupAssignments AccessGroupAssignment[]
 }

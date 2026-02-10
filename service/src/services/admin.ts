@@ -290,6 +290,17 @@ class AdminServiceImpl {
 
     return tenant;
   }
+
+  async getSurface(d: { surfaceId: string }) {
+    let surface = await db.appSurface.findUnique({
+      where: { id: d.surfaceId }
+    });
+    if (!surface) {
+      throw new ServiceError(notFoundError('appSurface', d.surfaceId));
+    }
+
+    return surface;
+  }
 }
 
 export let adminService = Service.create('AdminService', () => new AdminServiceImpl()).build();

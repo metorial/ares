@@ -42,7 +42,11 @@ export let ID = createIdGenerator({
 
   sender: idType.sorted('ssn_'),
 
-  auditLog: idType.sorted('aud_')
+  auditLog: idType.sorted('aud_'),
+
+  accessGroup: idType.sorted('acg_'),
+  accessGroupRule: idType.sorted('agr_'),
+  accessGroupAssignment: idType.sorted('aga_')
 });
 
 let workerIdBits = 12;

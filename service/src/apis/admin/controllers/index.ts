@@ -8,6 +8,7 @@ import { oauthProviderController } from './oauthProvider';
 import { ssoController } from './sso';
 import { tenantController } from './tenant';
 import { userController } from './user';
+import { accessGroupController } from './accessGroup';
 
 let rootController = publicApp.controller({
   authentication: authenticationController,
@@ -17,7 +18,8 @@ let rootController = publicApp.controller({
   tenant: tenantController,
   sso: ssoController,
   oauthProvider: oauthProviderController,
-  auditLog: auditLogController
+  auditLog: auditLogController,
+  accessGroup: accessGroupController
 });
 
 export let adminRPC = createServer({})(rootController);
