@@ -1,9 +1,23 @@
 import { useMutation } from '@metorial-io/data-hooks';
 import { useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Error } from '@metorial-io/ui';
+import { AuthLayout } from '../components/layout';
 import { authState } from '../state/auth';
 
 export let Internal = () => {
-  let auth = authState.use({});
+  let [searchParams] = useSearchParams();
+  let clientId = searchParams.get('client_id');
+
+  if (!clientId) {
+    return (
+      <AuthLayout>
+        <Error>Missing required parameter: client_id</Error>
+      </AuthLayout>
+    );
+  }
+
+  let auth = authState.use({ clientId });
   let startAuthentication = useMutation(auth.mutators.start);
 
   let authenticatingRef = useRef(false);
@@ -20,6 +34,7 @@ export let Internal = () => {
 
       startAuthentication.mutate({
         type: 'internal',
+        clientId,
         token,
         redirectUrl: auth.data.defaultRedirectUrl
       });

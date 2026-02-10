@@ -167,7 +167,7 @@ class UserServiceImpl {
           domain: parsedEmail.domain
         },
         create: {
-          ...getId('emailDomain' as any),
+          ...getId('emailDomain'),
           domain: parsedEmail.domain,
           appOid: d.app.oid
         },

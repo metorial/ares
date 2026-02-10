@@ -1,6 +1,7 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { addWeeks } from 'date-fns';
 import type {
+  App,
   AuthAttempt,
   AuthDevice,
   AuthDeviceUserSession,
@@ -25,13 +26,14 @@ class DeviceService {
     });
   }
 
-  async getLoggedInUsersForDevice(d: { device: AuthDevice }) {
+  async getLoggedInUsersForDevice(d: { device: AuthDevice; app?: App }) {
     return await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationOid: null
+        impersonationOid: null,
+        ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
         user: true
@@ -47,11 +49,12 @@ class DeviceService {
     return !d.session.loggedOutAt && d.session.expiresAt.getTime() > Date.now();
   }
 
-  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice }) {
+  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice; app?: App }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
-        impersonationOid: null
+        impersonationOid: null,
+        ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
         user: true
@@ -76,14 +79,15 @@ class DeviceService {
     return [...loggedInSessions, ...loggedOutSessionsUnique];
   }
 
-  async getSessionForLoggedInUser(d: { user: User; device: AuthDevice }) {
+  async getSessionForLoggedInUser(d: { user: User; device: AuthDevice; app?: App }) {
     return await db.authDeviceUserSession.findFirst({
       where: {
         userOid: d.user.oid,
         deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationOid: null
+        impersonationOid: null,
+        ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
         user: true

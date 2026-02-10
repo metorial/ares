@@ -1,17 +1,17 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
-import { db } from '../../../db';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
+import { resolveApp } from '../lib/resolveApp';
 import { deviceApp } from '../middleware/device';
 import { authAttemptPresenter, authIntentPresenter, deviceUserPresenter } from '../presenters';
 
 let redirectUrlValidator = v.string({
   modifiers:
-    process.env.ALLOW_CORS == 'true'
+    process.env.ALLOW_CORS == 'true' || process.env.NODE_ENV != 'production'
       ? []
       : [
           v.url({
@@ -36,7 +36,7 @@ let redirectUrlValidator = v.string({
 
               ...(process.env.NODE_ENV != 'production' ||
               process.env.METORIAL_ENV != 'production'
-                ? ['localhost', 'wsx', 'metorial.test', 'chronos', 'vulcan']
+                ? ['localhost']
                 : [])
             ]
           })
@@ -44,28 +44,33 @@ let redirectUrlValidator = v.string({
 });
 
 export let authenticationController = publicApp.controller({
-  boot: deviceApp.handler().do(async ({ device }) => {
-    let users = await deviceService.getLoggedInAndLoggedOutUsersForDevice({ device });
+  boot: deviceApp
+    .handler()
+    .input(
+      v.object({
+        clientId: v.string()
+      })
+    )
+    .do(async ({ device, input }) => {
+      let app = await resolveApp(input.clientId);
 
-    // Get default app - TODO: support multi-tenant apps
-    let app = await db.app.findFirst();
-    if (!app) throw new ServiceError(notFoundError('app'));
+      let users = await deviceService.getLoggedInAndLoggedOutUsersForDevice({ device, app });
 
-    let { options } = await authService.getAuthOptions({ app });
+      let { options } = await authService.getAuthOptions({ app });
 
-    return {
-      options,
+      return {
+        options,
 
-      captcha: {
-        type: 'required',
-        siteKey: env.turnstile.TURNSTILE_SITE_KEY
-      },
+        captcha: {
+          type: 'required',
+          siteKey: env.turnstile.TURNSTILE_SITE_KEY
+        },
 
-      defaultRedirectUrl: app.defaultRedirectUrl,
+        defaultRedirectUrl: app.defaultRedirectUrl,
 
-      users: await Promise.all(users.map(deviceUserPresenter))
-    };
-  }),
+        users: await Promise.all(users.map(deviceUserPresenter))
+      };
+    }),
 
   start: deviceApp
     .handler()
@@ -73,40 +78,44 @@ export let authenticationController = publicApp.controller({
       v.union([
         v.object({
           type: v.literal('email'),
+          clientId: v.string(),
           email: v.string(),
           redirectUrl: redirectUrlValidator,
           captchaToken: v.string()
         }),
         v.object({
           type: v.literal('oauth'),
+          clientId: v.string(),
           provider: v.enumOf(['google', 'github']),
           redirectUrl: redirectUrlValidator
         }),
         v.object({
           type: v.literal('sso'),
+          clientId: v.string(),
           redirectUrl: redirectUrlValidator
         }),
         v.object({
           type: v.literal('session'),
+          clientId: v.string(),
           userOrSessionId: v.string(),
           redirectUrl: redirectUrlValidator
         }),
         v.object({
           type: v.literal('internal'),
+          clientId: v.string(),
           token: v.string(),
           redirectUrl: redirectUrlValidator
         })
       ])
     )
     .do(async ({ context, device, input }) => {
-      // Get default app - TODO: support multi-tenant apps
-      let app = await db.app.findFirst();
-      if (!app) throw new ServiceError(notFoundError('app'));
+      let app = await resolveApp(input.clientId);
 
       let getSSO = async (p?: { email?: string }) => ({
         type: 'hook' as const,
         url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
           type: 'sso',
+          appClientId: app.clientId,
           deviceId: device.id,
           redirectUrl: input.redirectUrl,
           email: p?.email
@@ -117,7 +126,10 @@ export let authenticationController = publicApp.controller({
         let email = input.type == 'email' ? input.email : undefined;
 
         if (input.type == 'session') {
-          let sessions = await deviceService.getLoggedInAndLoggedOutUsersForDevice({ device });
+          let sessions = await deviceService.getLoggedInAndLoggedOutUsersForDevice({
+            device,
+            app
+          });
           let session = sessions.find(
             s => s.id == input.userOrSessionId || s.user.id == input.userOrSessionId
           );
@@ -165,6 +177,7 @@ export let authenticationController = publicApp.controller({
           type: 'hook' as const,
           url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/oauth/${await tickets.encode({
             type: 'oauth',
+            appClientId: app.clientId,
             provider: input.provider,
             deviceId: device.id,
             redirectUrl: input.redirectUrl

@@ -10,6 +10,7 @@ export let appPresenter = (
 
   id: app.id,
   clientId: app.clientId,
+  slug: app.slug,
 
   hasTerms: app.hasTerms,
   defaultRedirectUrl: app.defaultRedirectUrl,

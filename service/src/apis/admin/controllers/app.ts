@@ -34,11 +34,25 @@ export let appController = adminApp.controller({
     .handler()
     .input(
       v.object({
-        defaultRedirectUrl: v.string()
+        defaultRedirectUrl: v.string(),
+        slug: v.optional(v.string())
       })
     )
     .do(async ({ input }) => {
       let app = await adminService.createApp(input);
+      return appPresenter(app);
+    }),
+
+  update: adminApp
+    .handler()
+    .input(
+      v.object({
+        id: v.string(),
+        slug: v.optional(v.string())
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.updateApp({ appId: input.id, slug: input.slug });
       return appPresenter(app);
     })
 });

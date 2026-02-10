@@ -35,10 +35,14 @@ export let AppsPage = () => {
 
               let form = useForm({
                 initialValues: {
-                  defaultRedirectUrl: ''
+                  defaultRedirectUrl: '',
+                  slug: ''
                 },
                 onSubmit: async values => {
-                  let [res] = await create.mutate(values);
+                  let [res] = await create.mutate({
+                    defaultRedirectUrl: values.defaultRedirectUrl,
+                    slug: values.slug || undefined
+                  });
                   if (res) {
                     close();
                     navigate(`/apps/${res.id}`);
@@ -46,8 +50,9 @@ export let AppsPage = () => {
                 },
                 schema: yup =>
                   yup.object({
-                    defaultRedirectUrl: yup.string().url().required()
-                  })
+                    defaultRedirectUrl: yup.string().url().required(),
+                    slug: yup.string()
+                  }) as any
               });
 
               return (
@@ -60,6 +65,11 @@ export let AppsPage = () => {
                       {...form.getFieldProps('defaultRedirectUrl')}
                     />
                     <form.RenderError field="defaultRedirectUrl" />
+
+                    <Spacer size={15} />
+
+                    <Input label="Slug (optional)" {...form.getFieldProps('slug')} />
+                    <form.RenderError field="slug" />
 
                     <Spacer size={15} />
 
@@ -85,6 +95,7 @@ export let AppsPage = () => {
         <Table.Header>
           <Table.Row>
             <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell>Slug</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Tenants</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
@@ -96,11 +107,10 @@ export let AppsPage = () => {
           {apps.data.map((app: any) => (
             <Table.Row key={app.id}>
               <Table.Cell>{app.clientId}</Table.Cell>
+              <Table.Cell>{app.slug ?? '-'}</Table.Cell>
               <Table.Cell>{app.counts.users}</Table.Cell>
               <Table.Cell>{app.counts.tenants}</Table.Cell>
-              <Table.Cell>
-                {new Date(app.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
+              <Table.Cell>{new Date(app.createdAt).toLocaleDateString('de-at')}</Table.Cell>
               <Table.Cell>
                 <Link to={`/apps/${app.id}`}>
                   <Button as="span" size="1">

@@ -22,6 +22,7 @@ import { AuthLayout } from '../components/layout';
 import { authState } from '../state/auth';
 
 export let AuthHomeScene = ({
+  clientId,
   sessionOrUserId,
   nextUrl,
   email,
@@ -29,6 +30,7 @@ export let AuthHomeScene = ({
 
   setAuthIntent
 }: {
+  clientId: string;
   email: string | undefined;
   type: 'login' | 'signup' | 'switch';
   nextUrl: string;
@@ -36,7 +38,7 @@ export let AuthHomeScene = ({
 
   setAuthIntent?: (d: { authIntentId: string; authIntentClientSecret: string }) => void;
 }) => {
-  let auth = authState.use({});
+  let auth = authState.use({ clientId });
   let startAuthentication = useMutation(auth.mutators.start);
 
   let [captchaToken, setCaptchaToken] = useState<string>();
@@ -60,7 +62,7 @@ export let AuthHomeScene = ({
           .required('Please enter your email')
       }),
     onSubmit: async values => {
-      if (submitting.current || nextUrl) return;
+      if (submitting.current || !nextUrl) return;
       submitting.current = true;
 
       setLoadingSource('email');
@@ -73,6 +75,7 @@ export let AuthHomeScene = ({
 
       let [res] = await startAuthentication.mutate({
         type: 'email',
+        clientId,
         email: values.email,
         redirectUrl: nextUrl,
         captchaToken: nextCaptchaToken
@@ -127,6 +130,7 @@ export let AuthHomeScene = ({
     startAuthentication
       .mutate({
         type: 'session',
+        clientId,
         userOrSessionId: sessionOrUserIdToLogInWith,
         redirectUrl: nextUrl
       })
@@ -212,7 +216,7 @@ export let AuthHomeScene = ({
             <Text align="center" color="gray600" weight="medium" size="1">
               {type == 'login' ? (
                 <Link
-                  to={`/signup?nextUrl=${encodeURIComponent(nextUrl)}`}
+                  to={`/signup?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
                   style={{ color: 'inherit' }}
                   aria-disabled={startAuthentication.isLoading || form.isSubmitting}
                 >
@@ -221,7 +225,7 @@ export let AuthHomeScene = ({
                 </Link>
               ) : (
                 <Link
-                  to={`/login?nextUrl=${encodeURIComponent(nextUrl)}`}
+                  to={`/login?client_id=${encodeURIComponent(clientId)}&nextUrl=${encodeURIComponent(nextUrl)}`}
                   style={{ color: 'inherit' }}
                   aria-disabled={startAuthentication.isLoading || form.isSubmitting}
                 >
@@ -267,6 +271,7 @@ export let AuthHomeScene = ({
                 setLoadingSource(providerType);
                 startAuthentication.mutate({
                   type: 'oauth',
+                  clientId,
                   provider: providerType as any,
                   redirectUrl: nextUrl
                 });
@@ -296,6 +301,7 @@ export let AuthHomeScene = ({
             setLoadingSource('sso');
             startAuthentication.mutate({
               type: 'sso',
+              clientId,
               redirectUrl: nextUrl
             });
           }}

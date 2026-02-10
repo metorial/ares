@@ -6,16 +6,14 @@ import {
   Layout,
   Text
 } from '@metorial-services/relay-client';
-import { once } from '@lowerdeck/once';
 import type { User } from '@sentry/bun';
 import { UAParser } from 'ua-parser-js';
 import type { AuthIntent } from '../../prisma/generated/client';
-import { client, emailIdentity } from './client';
+import { createTemplateSender, emailIdentity, sender } from './client';
 
-let getTemplate = once(async () => {
-  return client.createTemplate(
-    createTemplate({
-      render: async ({ authIntent, user }: { authIntent: AuthIntent; user: User }) => {
+export let successfulLoginVerification = createTemplateSender(
+  createTemplate({
+    render: async ({ authIntent, user }: { authIntent: AuthIntent; user: User }) => {
       let ua = authIntent.ua ? new UAParser(authIntent.ua).getResult() : undefined;
       let geo = await ipInfo.getSafe(authIntent.ip);
 
@@ -77,14 +75,7 @@ let getTemplate = once(async () => {
         )
       });
     }
-    }),
-    await emailIdentity()
-  );
-});
-
-export let successfulLoginVerification = {
-  send: async (params: { to: string[]; data: { authIntent: AuthIntent; user: User } }) => {
-    let template = await getTemplate();
-    return template.send(params);
-  }
-};
+  }),
+  emailIdentity,
+  sender
+);

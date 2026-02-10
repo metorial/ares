@@ -1,5 +1,4 @@
-import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
-import { parseForwardedFor } from '@lowerdeck/forwarded-for';
+import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { createHono } from '@lowerdeck/hono';
 import { generateCustomId } from '@lowerdeck/id';
 import { v } from '@lowerdeck/validation';
@@ -9,6 +8,7 @@ import { env } from '../../../env';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { tickets } from '../../../lib/tickets';
+import { resolveApp } from '../lib/resolveApp';
 import { SESSION_ID_COOKIE_NAME } from '../middleware/device';
 
 let isProd = process.env.NODE_ENV === 'production';
@@ -29,23 +29,19 @@ if (isProd) {
 }
 
 export let authHooksApp = createHono()
-  // TODO: OAuth and SSO endpoints need an 'app' parameter to work.
-  // The auth service requires an App context to look up OAuth provider credentials.
-  // Need to determine:
-  // 1. How should the app be determined? (from subdomain, query param, default app, etc.)
-  // 2. Should there be a default app for single-tenant deployments?
-  // 3. Where should the app lookup logic be added?
-
   .get('/oauth/:ticket', async ctx => {
     let ticket = await tickets.decode(
       ctx.req.param('ticket'),
       v.object({
         type: v.literal('oauth'),
+        appClientId: v.string(),
         provider: v.enumOf(['google', 'github']),
         deviceId: v.string(),
         redirectUrl: v.string()
       })
     );
+
+    let app = await resolveApp(ticket.appClientId);
 
     let state = generateCustomId('oauth_state', 50);
 
@@ -54,6 +50,7 @@ export let authHooksApp = createHono()
       Cookies.serialize(
         `metorial_oauth_state_${state}`,
         JSON.stringify({
+          appClientId: ticket.appClientId,
           provider: ticket.provider,
           redirectUrl: ticket.redirectUrl,
           deviceId: ticket.deviceId
@@ -64,26 +61,88 @@ export let authHooksApp = createHono()
       )
     );
 
-    // TODO: Need to get the app context here
-    // let url = await authService.getSocialProviderAuthUrl({
-    //   provider: ticket.provider,
-    //   state,
-    //   app: ???
-    // });
+    let url = await authService.getSocialProviderAuthUrl({
+      provider: ticket.provider,
+      state,
+      app
+    });
 
-    throw new ServiceError(badRequestError({ message: 'OAuth not yet implemented' }));
+    return ctx.redirect(url);
   })
   .get('/oauth-response/:provider', async ctx => {
-    // TODO: Same issue - needs app context
-    throw new ServiceError(badRequestError({ message: 'OAuth not yet implemented' }));
+    let provider = ctx.req.param('provider');
+    let code = ctx.req.query('code');
+    let state = ctx.req.query('state');
+
+    if (!code || !state) {
+      throw new ServiceError(badRequestError({ message: 'Missing code or state' }));
+    }
+
+    let cookieHeader = ctx.req.header('cookie') ?? '';
+    let cookies = Cookies.parse(cookieHeader);
+    let stateCookie = cookies[`metorial_oauth_state_${state}`];
+    if (!stateCookie) {
+      throw new ServiceError(badRequestError({ message: 'Invalid OAuth state' }));
+    }
+
+    let stateData = JSON.parse(stateCookie) as {
+      appClientId: string;
+      provider: string;
+      redirectUrl: string;
+      deviceId: string;
+    };
+
+    let app = await resolveApp(stateData.appClientId);
+    let device = await deviceService.dangerouslyGetDeviceOnlyById({ deviceId: stateData.deviceId });
+
+    let ip = ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '';
+    let ua = ctx.req.header('user-agent') ?? '';
+
+    let res = await authService.authWithSocialProviderToken({
+      provider: provider as 'google' | 'github',
+      code,
+      app,
+      device,
+      redirectUrl: stateData.redirectUrl,
+      context: { ip, ua }
+    });
+
+    if (res.type == 'auth_attempt') {
+      let session = await deviceService.exchangeAuthAttemptForSession({
+        authAttempt: res.authAttempt
+      });
+
+      ctx.res.headers.append(
+        'Set-Cookie',
+        Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
+      );
+
+      return ctx.redirect(res.authAttempt.redirectUrl);
+    }
+
+    return ctx.redirect(
+      `${env.urls.AUTH_FRONTEND_HOST}/auth-intent?authIntentId=${res.authIntent.id}&authIntentClientSecret=${res.authIntent.clientSecret}`
+    );
   })
   .get('/sso/:ticket', async ctx => {
-    // TODO: SSO needs app context - see authService.getSsoAuthUrl
+    let ticket = await tickets.decode(
+      ctx.req.param('ticket'),
+      v.object({
+        type: v.literal('sso'),
+        appClientId: v.string(),
+        deviceId: v.string(),
+        redirectUrl: v.string(),
+        email: v.optional(v.string())
+      })
+    );
+
+    let _app = await resolveApp(ticket.appClientId);
+
+    // TODO: SSO not yet implemented - needs authService.getSsoAuthUrl
     throw new ServiceError(badRequestError({ message: 'SSO not yet implemented' }));
   })
   .get('/sso-response', async ctx => {
-    // TODO: SSO needs app context - see authService.authWithSsoToken
-    throw new ServiceError(badRequestError({ message: 'SSO not yet implemented' }));
+    throw new ServiceError(badRequestError({ message: 'SSO response not yet implemented' }));
   })
 
   .get('/auth-attempt/:ticket', async ctx => {

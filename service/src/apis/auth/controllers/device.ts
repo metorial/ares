@@ -1,6 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
+import { resolveApp } from '../lib/resolveApp';
 import { deviceApp } from '../middleware/device';
 import { deviceUserPresenter } from '../presenters';
 
@@ -41,13 +42,17 @@ export let deviceController = publicApp.controller({
     .handler()
     .input(
       v.object({
+        clientId: v.string(),
         deviceId: v.string(),
         clientSecret: v.string()
       })
     )
-    .do(async ({ device }) => {
+    .do(async ({ device, input }) => {
+      let app = await resolveApp(input.clientId);
+
       let sessions = await deviceService.getLoggedInUsersForDevice({
-        device
+        device,
+        app
       });
 
       return await Promise.all(sessions.map(deviceUserPresenter));

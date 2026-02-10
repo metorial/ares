@@ -21,6 +21,7 @@ export let AppPage = () => {
         {[
           ['ID', app.data.id],
           ['Client ID', app.data.clientId],
+          ['Slug', app.data.slug ?? '-'],
           ['Has Terms', app.data.hasTerms ? 'Yes' : 'No'],
           ['Default Redirect URL', app.data.defaultRedirectUrl ?? '-'],
           ['Default Tenant', app.data.defaultTenant?.clientId ?? '-'],
