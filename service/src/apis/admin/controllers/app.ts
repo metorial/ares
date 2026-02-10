@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
-import { appPresenter } from '../presenters';
 import { adminApp } from '../middleware/admin';
+import { appPresenter } from '../presenters';
 
 export let appController = adminApp.controller({
   list: adminApp
@@ -15,9 +15,7 @@ export let appController = adminApp.controller({
     .do(async ({ input }) => {
       let apps = await adminService.listApps(input);
 
-      return {
-        data: apps.map(appPresenter)
-      };
+      return apps.map(appPresenter);
     }),
 
   get: adminApp
@@ -29,6 +27,18 @@ export let appController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.id });
+      return appPresenter(app);
+    }),
+
+  create: adminApp
+    .handler()
+    .input(
+      v.object({
+        defaultRedirectUrl: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.createApp(input);
       return appPresenter(app);
     })
 });

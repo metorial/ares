@@ -3,7 +3,6 @@ model Tenant {
   id  String @unique
 
   clientId String @unique
-  slug     String @unique
 
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)

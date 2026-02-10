@@ -1,7 +1,7 @@
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
-import { adminPresenter } from '../presenters';
 import { adminApp } from '../middleware/admin';
+import { adminPresenter } from '../presenters';
 
 export let adminController = adminApp.controller({
   list: adminApp
@@ -15,8 +15,6 @@ export let adminController = adminApp.controller({
     .do(async ({ input }) => {
       let admins = await adminService.listAdmins(input);
 
-      return {
-        data: admins.map(adminPresenter)
-      };
+      return admins.map(adminPresenter);
     })
 });

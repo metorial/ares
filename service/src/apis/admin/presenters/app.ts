@@ -10,7 +10,6 @@ export let appPresenter = (
 
   id: app.id,
   clientId: app.clientId,
-  slug: app.slug,
 
   hasTerms: app.hasTerms,
   defaultRedirectUrl: app.defaultRedirectUrl,
@@ -18,7 +17,6 @@ export let appPresenter = (
   defaultTenant: app.defaultTenant
     ? {
         id: app.defaultTenant.id,
-        slug: app.defaultTenant.slug,
         clientId: app.defaultTenant.clientId
       }
     : null,

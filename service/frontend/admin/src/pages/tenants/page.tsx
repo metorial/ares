@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
 import { Button } from '@metorial-io/ui';
 import { Table, TextField } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appsState, tenantsState } from '../../state';
 
@@ -11,15 +11,17 @@ export let TenantsPage = () => {
 
   let apps = appsState.use({});
 
+  let firstAppId = apps.data?.[0]?.id;
+  let [selectedAppId, setSelectedAppId] = useState<string | undefined>();
+  useEffect(() => {
+    if (firstAppId) setSelectedAppId(firstAppId);
+  }, [firstAppId]);
+
+  if (!selectedAppId) {
+    return <div>No apps found. Create an app first.</div>;
+  }
+
   return renderWithLoader({ apps })(({ apps }) => {
-    let [selectedAppId, setSelectedAppId] = useState<string | undefined>(
-      apps.data[0]?.id
-    );
-
-    if (!selectedAppId) {
-      return <div>No apps found. Create an app first.</div>;
-    }
-
     return (
       <TenantsForApp
         appId={selectedAppId}
@@ -46,7 +48,7 @@ let TenantsForApp = ({
   appId: string;
   search?: string;
   after?: string;
-  apps: { id: string; slug: string }[];
+  apps: { id: string; clientId: string }[];
   onAppChange: (id: string) => void;
   onSearchChange: (s: string) => void;
   onLoadMore: (after: string | undefined) => void;
@@ -64,7 +66,7 @@ let TenantsForApp = ({
           >
             {apps.map(app => (
               <option key={app.id} value={app.id}>
-                {app.slug}
+                {app.clientId}
               </option>
             ))}
           </select>
@@ -78,18 +80,13 @@ let TenantsForApp = ({
             onSearchChange(formData.get('search') as string);
           }}
         >
-          <TextField.Root
-            placeholder="Search"
-            name="search"
-            defaultValue={search}
-          />
+          <TextField.Root placeholder="Search" name="search" defaultValue={search} />
         </form>
       </div>
 
       <Table.Root variant="surface">
         <Table.Header>
           <Table.Row>
-            <Table.ColumnHeaderCell>Slug</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
             <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
@@ -100,12 +97,9 @@ let TenantsForApp = ({
         <Table.Body>
           {tenants.data.map((tenant: any) => (
             <Table.Row key={tenant.id}>
-              <Table.Cell>{tenant.slug}</Table.Cell>
               <Table.Cell>{tenant.clientId}</Table.Cell>
               <Table.Cell>{tenant.counts.users}</Table.Cell>
-              <Table.Cell>
-                {new Date(tenant.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
+              <Table.Cell>{new Date(tenant.createdAt).toLocaleDateString('de-at')}</Table.Cell>
               <Table.Cell>
                 <Link to={`/tenants/${tenant.id}`}>
                   <Button as="span" size="1">

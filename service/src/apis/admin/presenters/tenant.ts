@@ -10,7 +10,6 @@ export let tenantPresenter = (
 
   id: tenant.id,
   clientId: tenant.clientId,
-  slug: tenant.slug,
 
   appId: tenant.app?.id,
 

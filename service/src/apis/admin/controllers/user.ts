@@ -1,8 +1,8 @@
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { userPresenter } from '../../auth/presenters';
-import { adminUserPresenter } from '../presenters';
 import { adminApp } from '../middleware/admin';
+import { adminUserPresenter } from '../presenters';
 
 export let userController = adminApp.controller({
   list: adminApp
@@ -22,9 +22,7 @@ export let userController = adminApp.controller({
         after: input.after
       });
 
-      return {
-        data: await Promise.all(users.map(userPresenter))
-      };
+      return await Promise.all(users.map(userPresenter));
     }),
 
   get: adminApp

@@ -4,7 +4,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
 
-  base: '/metorial-admin',
+  base: '/metorial-ares-admin',
 
   resolve: {
     dedupe: ['react', 'react-dom']
@@ -13,7 +13,7 @@ export default defineConfig({
   server: {
     port: 5174,
     proxy: {
-      '/metorial-admin/api': {
+      '/metorial-ares-admin/api': {
         target: 'http://localhost:52121',
         changeOrigin: true
       }

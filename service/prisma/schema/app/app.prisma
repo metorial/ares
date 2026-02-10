@@ -3,7 +3,6 @@ model App {
   id  String @unique
 
   clientId String @unique
-  slug     String @unique
 
   hasTerms Boolean @default(true)
 

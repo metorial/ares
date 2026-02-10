@@ -19,7 +19,7 @@ let adminMux = rpcMux(
               ...(process.env.CORS_DOMAINS?.split(',').map(d => d.trim()) ?? [])
             ]
           },
-    path: '/metorial-admin/api'
+    path: '/metorial-ares-admin/api'
   },
   [adminRPC]
 );

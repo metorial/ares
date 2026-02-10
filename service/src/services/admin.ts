@@ -8,8 +8,8 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import { addHours } from 'date-fns';
 import type { Admin, App } from '../../prisma/generated/client';
-import { db } from '../db';
-import { getId } from '../id';
+import { db, withTransaction } from '../db';
+import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
 import { authBlockService } from './authBlock';
 
@@ -32,10 +32,18 @@ class AdminServiceImpl {
     // Skip password check in development for easier testing
     if (process.env.NODE_ENV != 'development') {
       if (!admin) throw err;
-
       let valid = await Bun.password.verify(d.password, admin.password);
       if (!valid) throw err;
-    } else if (!admin) throw err;
+    } else if (!admin) {
+      admin = await db.admin.create({
+        data: {
+          ...getId('admin'),
+          email: d.email,
+          name: d.email.split('@')[0]!,
+          password: ''
+        }
+      });
+    }
 
     return await db.adminSession.create({
       data: {
@@ -49,11 +57,7 @@ class AdminServiceImpl {
     });
   }
 
-  async adminLoginWithOAuth(d: {
-    email: string;
-    name: string;
-    context: Context;
-  }) {
+  async adminLoginWithOAuth(d: { email: string; name: string; context: Context }) {
     let admin = await db.admin.upsert({
       where: { email: d.email },
       create: {
@@ -179,12 +183,39 @@ class AdminServiceImpl {
     return session.admin;
   }
 
+  async createApp(d: { defaultRedirectUrl: string }) {
+    return withTransaction(async db => {
+      let app = await db.app.create({
+        data: {
+          ...getId('app'),
+          clientId: await ID.generateId('app_clientId'),
+          defaultRedirectUrl: d.defaultRedirectUrl
+        }
+      });
+
+      let tenant = await db.tenant.create({
+        data: {
+          ...getId('tenant'),
+          clientId: await ID.generateId('tenant_clientId'),
+          appOid: app.oid
+        }
+      });
+
+      return await db.app.update({
+        where: { oid: app.oid },
+        data: { defaultTenantOid: tenant.oid },
+        include: {
+          defaultTenant: true,
+          _count: { select: { users: true, tenants: true } }
+        }
+      });
+    });
+  }
+
   async listApps(d: { after?: string; search?: string }) {
     return await db.app.findMany({
       where: {
-        OR: d.search
-          ? [{ slug: { contains: d.search } }, { clientId: { contains: d.search } }]
-          : undefined,
+        OR: d.search ? [{ clientId: { contains: d.search } }] : undefined,
         id: d.after ? { gt: d.after } : undefined
       },
       include: {
@@ -218,9 +249,7 @@ class AdminServiceImpl {
     return await db.tenant.findMany({
       where: {
         appOid: app.oid,
-        OR: d.search
-          ? [{ slug: { contains: d.search } }, { clientId: { contains: d.search } }]
-          : undefined,
+        OR: d.search ? [{ clientId: { contains: d.search } }] : undefined,
         id: d.after ? { gt: d.after } : undefined
       },
       include: {

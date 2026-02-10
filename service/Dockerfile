@@ -81,8 +81,9 @@ COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./package.json
 
-# Copy built frontend
+# Copy built frontends
 COPY --from=builder /app/frontend/auth/dist ./frontend/auth/dist
+COPY --from=builder /app/frontend/admin/dist ./frontend/admin/dist
 
 # Create non-root user for security
 RUN groupadd -r metorial && useradd -r -g metorial metorial && \

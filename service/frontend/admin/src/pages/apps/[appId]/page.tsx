@@ -10,7 +10,7 @@ export let AppPage = () => {
   return renderWithLoader({ app })(({ app }) => (
     <>
       <Heading as="h1" size="7">
-        {app.data.slug}
+        {app.data.clientId}
       </Heading>
 
       <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
@@ -21,10 +21,9 @@ export let AppPage = () => {
         {[
           ['ID', app.data.id],
           ['Client ID', app.data.clientId],
-          ['Slug', app.data.slug],
           ['Has Terms', app.data.hasTerms ? 'Yes' : 'No'],
           ['Default Redirect URL', app.data.defaultRedirectUrl ?? '-'],
-          ['Default Tenant', app.data.defaultTenant?.slug ?? '-'],
+          ['Default Tenant', app.data.defaultTenant?.clientId ?? '-'],
           ['Users', app.data.counts.users],
           ['Tenants', app.data.counts.tenants],
           ['Created At', new Date(app.data.createdAt).toLocaleDateString('de-at')],

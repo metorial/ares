@@ -1,7 +1,7 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
 import { Button } from '@metorial-io/ui';
 import { Table, TextField } from '@radix-ui/themes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { appsState, usersState } from '../../state';
 
@@ -11,15 +11,17 @@ export let UsersPage = () => {
 
   let apps = appsState.use({});
 
+  let firstAppId = apps.data?.[0]?.id;
+  let [selectedAppId, setSelectedAppId] = useState<string | undefined>();
+  useEffect(() => {
+    if (firstAppId) setSelectedAppId(firstAppId);
+  }, [firstAppId]);
+
+  if (!selectedAppId) {
+    return <div>No apps found. Create an app first.</div>;
+  }
+
   return renderWithLoader({ apps })(({ apps }) => {
-    let [selectedAppId, setSelectedAppId] = useState<string | undefined>(
-      apps.data[0]?.id
-    );
-
-    if (!selectedAppId) {
-      return <div>No apps found. Create an app first.</div>;
-    }
-
     return (
       <UsersForApp
         appId={selectedAppId}
@@ -46,7 +48,7 @@ let UsersForApp = ({
   appId: string;
   search?: string;
   after?: string;
-  apps: { id: string; slug: string }[];
+  apps: { id: string; clientId: string }[];
   onAppChange: (id: string) => void;
   onSearchChange: (s: string) => void;
   onLoadMore: (after: string | undefined) => void;
@@ -64,7 +66,7 @@ let UsersForApp = ({
           >
             {apps.map(app => (
               <option key={app.id} value={app.id}>
-                {app.slug}
+                {app.clientId}
               </option>
             ))}
           </select>
@@ -78,11 +80,7 @@ let UsersForApp = ({
             onSearchChange(formData.get('search') as string);
           }}
         >
-          <TextField.Root
-            placeholder="Search"
-            name="search"
-            defaultValue={search}
-          />
+          <TextField.Root placeholder="Search" name="search" defaultValue={search} />
         </form>
       </div>
 

@@ -22,8 +22,7 @@ export default defineConfig({
       '/favicon.ico': { target: 'http://localhost:52071', changeOrigin: true },
       '/favicon.svg': { target: 'http://localhost:52071', changeOrigin: true },
       '/favicon-96x96.png': { target: 'http://localhost:52071', changeOrigin: true },
-      '/apple-touch-icon.png': { target: 'http://localhost:52071', changeOrigin: true },
-      '/site.webmanifest': { target: 'http://localhost:52071', changeOrigin: true }
+      '/apple-touch-icon.png': { target: 'http://localhost:52071', changeOrigin: true }
     }
   },
 

@@ -64,6 +64,27 @@ services:
       timeout: 5s
       retries: 10
 
+  relay:
+    profiles: ['infra']
+    image: ghcr.io/metorial/relay:latest
+    container_name: ares-relay
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://ares:ares@postgres:5432/relay
+      REDIS_URL: redis://redis:6379/0
+      EMAIL_SES_ACCESS_KEY_ID: ${EMAIL_SES_ACCESS_KEY_ID}
+      EMAIL_SES_SECRET_ACCESS_KEY: ${EMAIL_SES_SECRET_ACCESS_KEY}
+      EMAIL_SES_REGION: ${EMAIL_SES_REGION}
+    ports:
+      - '52110:52110'
+    networks:
+      - ares-network
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:52110/ping || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   ares:
     profiles: ['service']
     build:

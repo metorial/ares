@@ -1,8 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { Link } from 'react-router-dom';
 import { App } from './router';
 
-import { Link } from 'react-router-dom';
+import '@radix-ui/themes/styles.css';
 import './reset.css';
 
 (window as any).LinkComponent = Link;

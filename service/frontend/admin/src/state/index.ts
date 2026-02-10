@@ -1,5 +1,5 @@
-import { createLoader } from '@metorial-io/data-hooks';
 import { isServiceError } from '@lowerdeck/error';
+import { createLoader } from '@metorial-io/data-hooks';
 import { adminClient } from './client';
 
 let redirectToAuthIfNotAuthenticated = async <R>(fn: () => Promise<R>) => {
@@ -34,9 +34,7 @@ export let usersState = createLoader({
 export let userState = createLoader({
   name: 'user',
   fetch: (d: { id: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.user.get({ id: d.id })
-    );
+    return redirectToAuthIfNotAuthenticated(() => adminClient.user.get({ id: d.id }));
   },
   mutators: {
     impersonate: (d: { reason: string; password?: string }, { output }) => {
@@ -80,9 +78,7 @@ export let appsState = createLoader({
 export let appState = createLoader({
   name: 'app',
   fetch: (d: { id: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.app.get({ id: d.id })
-    );
+    return redirectToAuthIfNotAuthenticated(() => adminClient.app.get({ id: d.id }));
   },
   mutators: {}
 });
@@ -104,9 +100,7 @@ export let tenantsState = createLoader({
 export let tenantState = createLoader({
   name: 'tenant',
   fetch: (d: { id: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.tenant.get({ id: d.id })
-    );
+    return redirectToAuthIfNotAuthenticated(() => adminClient.tenant.get({ id: d.id }));
   },
   mutators: {}
 });

@@ -23,7 +23,7 @@ let getIndexHtmlText = async () => {
 
 export let publicApp = createHono()
   .get('/ping', c => c.text('OK'))
-  .get('/metorial-admin/assets/:key*', async c => {
+  .get('/metorial-ares-admin/assets/:key*', async c => {
     let key = c.req.param('key*');
 
     let targetPath = path.resolve(assetsDir, key);

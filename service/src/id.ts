@@ -5,6 +5,9 @@ export let ID = createIdGenerator({
   app: idType.sorted('app_'),
   tenant: idType.sorted('atn_'),
 
+  app_clientId: idType.key('appcid_'),
+  tenant_clientId: idType.key('tncid_'),
+
   authIntent: idType.sorted('ain_'),
   authIntentStep: idType.sorted('ast_'),
   authIntentCode: idType.sorted('aic_'),

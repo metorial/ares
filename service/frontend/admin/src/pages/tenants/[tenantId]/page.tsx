@@ -10,7 +10,7 @@ export let TenantPage = () => {
   return renderWithLoader({ tenant })(({ tenant }) => (
     <>
       <Heading as="h1" size="7">
-        {tenant.data.slug}
+        {tenant.data.clientId}
       </Heading>
 
       <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
@@ -21,7 +21,6 @@ export let TenantPage = () => {
         {[
           ['ID', tenant.data.id],
           ['Client ID', tenant.data.clientId],
-          ['Slug', tenant.data.slug],
           ['App ID', tenant.data.appId ?? '-'],
           ['Users', tenant.data.counts.users],
           ['Created At', new Date(tenant.data.createdAt).toLocaleDateString('de-at')],
