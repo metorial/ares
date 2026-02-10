@@ -1,6 +1,6 @@
 import { renderWithLoader, useMutation } from '@metorial-io/data-hooks';
 import { Button, Spacer } from '@metorial-io/ui';
-import { DataList, Heading, Table } from '@radix-ui/themes';
+import { DataList, Heading, Switch, Table, Text } from '@radix-ui/themes';
 import { useParams } from 'react-router-dom';
 import { ssoConnectionsState, ssoTenantState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
@@ -10,6 +10,7 @@ export let SsoTenantPage = () => {
   let ssoTenant = ssoTenantState.use({ id: ssoTenantId! });
   let connections = ssoConnectionsState.use({ tenantId: ssoTenantId! });
   let createSetup = useMutation(adminClient.sso.createSetup);
+  let setGlobal = useMutation(adminClient.sso.setGlobal);
 
   return renderWithLoader({ ssoTenant, connections })(({ ssoTenant, connections }) => (
     <>
@@ -37,6 +38,25 @@ export let SsoTenantPage = () => {
           </DataList.Item>
         ))}
       </DataList.Root>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 30, marginBottom: 10 }}>
+        <Heading as="h2" size="4">
+          Global SSO
+        </Heading>
+      </div>
+
+      <Text as="label" size="2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Switch
+          checked={ssoTenant.data.isGlobal}
+          disabled={setGlobal.isLoading}
+          onCheckedChange={async (checked) => {
+            let [res] = await setGlobal.mutate({ id: ssoTenantId!, isGlobal: checked });
+            if (res) ssoTenant.refetch();
+          }}
+        />
+        Available on all apps
+      </Text>
+      <setGlobal.RenderError />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 30, marginBottom: 10 }}>
         <Heading as="h2" size="4">

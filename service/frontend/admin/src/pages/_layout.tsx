@@ -1,7 +1,7 @@
 import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
 import { Logo } from '@metorial-io/ui';
 import { Theme } from '@radix-ui/themes';
-import { RiApps2Line, RiFileListLine, RiGroupLine, RiShieldUserLine, RiUserLine } from '@remixicon/react';
+import { RiApps2Line, RiFileListLine, RiGroupLine, RiSettings3Line, RiShieldUserLine, RiUserLine } from '@remixicon/react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
 
@@ -16,7 +16,8 @@ export let Layout = () => {
 
   let configItems = [
     { icon: <RiApps2Line />, label: 'Apps', to: '/apps' },
-    { icon: <RiGroupLine />, label: 'Tenants', to: '/tenants' }
+    { icon: <RiGroupLine />, label: 'Tenants', to: '/tenants' },
+    { icon: <RiSettings3Line />, label: 'Settings', to: '/settings' }
   ];
 
   let items = [...accountItems, ...configItems];

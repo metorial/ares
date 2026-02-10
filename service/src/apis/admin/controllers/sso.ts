@@ -102,5 +102,46 @@ export let ssoController = adminApp.controller({
       let connections = await ssoService.getConnectionsByTenant({ tenant });
 
       return connections.map(ssoConnectionPresenter);
+    }),
+
+  listGlobalTenants: adminApp
+    .handler()
+    .input(v.object({}))
+    .do(async () => {
+      let tenants = await db.ssoTenant.findMany({
+        where: { isGlobal: true },
+        include: {
+          _count: { select: { connections: true } },
+          app: { select: { id: true, clientId: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      return tenants.map(t => ({
+        ...ssoTenantPresenter(t),
+        app: { id: t.app.id, clientId: t.app.clientId }
+      }));
+    }),
+
+  setGlobal: adminApp
+    .handler()
+    .input(
+      v.object({
+        id: v.string(),
+        isGlobal: v.boolean()
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.id });
+
+      let updated = await db.ssoTenant.update({
+        where: { oid: tenant.oid },
+        data: { isGlobal: input.isGlobal },
+        include: {
+          _count: { select: { connections: true } }
+        }
+      });
+
+      return ssoTenantPresenter(updated);
     })
 });

@@ -295,7 +295,7 @@ class AccessGroupServiceImpl {
       if (emails.length === 0) return false;
 
       let tenants = await db.ssoTenant.findMany({
-        where: { appOid: d.appOid },
+        where: { OR: [{ appOid: d.appOid }, { isGlobal: true }] },
         select: { oid: true }
       });
       let tenantOids = tenants.map(t => t.oid);
@@ -305,7 +305,10 @@ class AccessGroupServiceImpl {
       let ssoTenantValues = rulesByType.get('sso_tenant');
       if (ssoTenantValues) {
         let matchingTenants = await db.ssoTenant.findMany({
-          where: { appOid: d.appOid, id: { in: ssoTenantValues } },
+          where: {
+            OR: [{ appOid: d.appOid }, { isGlobal: true }],
+            id: { in: ssoTenantValues }
+          },
           select: { oid: true }
         });
         if (matchingTenants.length > 0) {

@@ -1,12 +1,13 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
 import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { DataList, Heading, Select, Table } from '@radix-ui/themes';
+import { Badge, DataList, Heading, Select, Table } from '@radix-ui/themes';
 import { Link, useParams } from 'react-router-dom';
 import {
   accessGroupsState,
   appAccessGroupAssignmentsState,
   appState,
   appSurfacesState,
+  globalSsoTenantsState,
   oauthProvidersState,
   ssoTenantsState,
   surfaceAccessGroupAssignmentsState
@@ -17,13 +18,14 @@ export let AppPage = () => {
   let { appId } = useParams();
   let app = appState.use({ id: appId! });
   let ssoTenants = ssoTenantsState.use({ appId: appId! });
+  let globalSsoTenants = globalSsoTenantsState.use();
   let oauthProviders = oauthProvidersState.use({ appId: appId! });
   let accessGroups = accessGroupsState.use({ appId: appId! });
   let appAssignments = appAccessGroupAssignmentsState.use({ appId: appId! });
   let surfaces = appSurfacesState.use({ appId: appId! });
 
-  return renderWithLoader({ app, ssoTenants, oauthProviders, accessGroups, appAssignments, surfaces })(
-    ({ app, ssoTenants, oauthProviders, accessGroups, appAssignments, surfaces }) => (
+  return renderWithLoader({ app, ssoTenants, globalSsoTenants, oauthProviders, accessGroups, appAssignments, surfaces })(
+    ({ app, ssoTenants, globalSsoTenants, oauthProviders, accessGroups, appAssignments, surfaces }) => (
       <>
         <Heading as="h1" size="7">
           {app.data.clientId}
@@ -241,7 +243,10 @@ export let AppPage = () => {
           <Table.Body>
             {ssoTenants.data.map((tenant: any) => (
               <Table.Row key={tenant.id}>
-                <Table.Cell>{tenant.name}</Table.Cell>
+                <Table.Cell>
+                  {tenant.name}
+                  {tenant.isGlobal && <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge>}
+                </Table.Cell>
                 <Table.Cell>{tenant.status}</Table.Cell>
                 <Table.Cell>{tenant.counts.connections}</Table.Cell>
                 <Table.Cell>{new Date(tenant.createdAt).toLocaleDateString('de-at')}</Table.Cell>
@@ -255,7 +260,28 @@ export let AppPage = () => {
               </Table.Row>
             ))}
 
-            {ssoTenants.data.length === 0 && (
+            {globalSsoTenants.data
+              .filter((gt: any) => !ssoTenants.data.some((t: any) => t.id === gt.id))
+              .map((tenant: any) => (
+                <Table.Row key={tenant.id}>
+                  <Table.Cell>
+                    {tenant.name}
+                    <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge>
+                  </Table.Cell>
+                  <Table.Cell>{tenant.status}</Table.Cell>
+                  <Table.Cell>{tenant.counts.connections}</Table.Cell>
+                  <Table.Cell>{new Date(tenant.createdAt).toLocaleDateString('de-at')}</Table.Cell>
+                  <Table.Cell>
+                    <Link to={`/apps/${tenant.app.id}/sso/${tenant.id}`}>
+                      <Button as="span" size="1">
+                        View
+                      </Button>
+                    </Link>
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+
+            {ssoTenants.data.length === 0 && globalSsoTenants.data.length === 0 && (
               <Table.Row>
                 <Table.Cell colSpan={5} style={{ textAlign: 'center', color: '#888' }}>
                   No SSO tenants configured

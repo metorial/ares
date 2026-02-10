@@ -45,11 +45,11 @@ class AuthServiceImpl {
       options.push({ type: `oauth.${provider.provider}` });
     }
 
-    // Query SSO tenants with completed status for this app
+    // Query SSO tenants with completed status for this app (including global tenants)
     let ssoTenants = await db.ssoTenant.findMany({
       where: {
-        appOid: d.app.oid,
-        status: 'completed'
+        status: 'completed',
+        OR: [{ appOid: d.app.oid }, { isGlobal: true }]
       }
     });
 

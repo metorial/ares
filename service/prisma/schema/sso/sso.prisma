@@ -16,6 +16,8 @@ model SsoTenant {
   /// [JsonObject]
   metadata Json?
 
+  isGlobal Boolean @default(false)
+
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
 

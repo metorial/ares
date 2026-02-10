@@ -14,6 +14,7 @@ import { AccessGroupsPage } from './pages/apps/[appId]/accessGroups/page';
 import { AccessGroupPage } from './pages/apps/[appId]/accessGroups/[accessGroupId]/page';
 import { TenantsPage } from './pages/tenants/page';
 import { TenantPage } from './pages/tenants/[tenantId]/page';
+import { SettingsPage } from './pages/settings/page';
 
 let router = createBrowserRouter([
   {
@@ -48,7 +49,8 @@ let router = createBrowserRouter([
       { path: 'apps/:appId/access-groups/:accessGroupId', element: <AccessGroupPage /> },
       { path: 'tenants', element: <TenantsPage /> },
       { path: 'tenants/:tenantId', element: <TenantPage /> },
-      { path: 'audit-logs', element: <AuditLogsPage /> }
+      { path: 'audit-logs', element: <AuditLogsPage /> },
+      { path: 'settings', element: <SettingsPage /> }
     ]
   }
 ]);

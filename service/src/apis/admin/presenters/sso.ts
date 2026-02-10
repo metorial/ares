@@ -12,6 +12,7 @@ export let ssoTenantPresenter = (
   status: tenant.status,
   clientId: tenant.clientId,
   externalId: tenant.externalId,
+  isGlobal: tenant.isGlobal,
 
   counts: {
     connections: tenant._count?.connections ?? 0

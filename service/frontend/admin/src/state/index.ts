@@ -206,3 +206,13 @@ export let surfaceAccessGroupAssignmentsState = createLoader({
   },
   mutators: {}
 });
+
+export let globalSsoTenantsState = createLoader({
+  name: 'globalSsoTenants',
+  fetch: () => {
+    return redirectToAuthIfNotAuthenticated(() =>
+      adminClient.sso.listGlobalTenants({})
+    );
+  },
+  mutators: {}
+});
