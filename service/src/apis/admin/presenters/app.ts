@@ -14,6 +14,7 @@ export let appPresenter = (
 
   hasTerms: app.hasTerms,
   defaultRedirectUrl: app.defaultRedirectUrl,
+  redirectDomains: app.redirectDomains,
 
   defaultTenant: app.defaultTenant
     ? {

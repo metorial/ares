@@ -8,6 +8,7 @@ model App {
   hasTerms Boolean @default(true)
 
   defaultRedirectUrl String
+  redirectDomains    String[] @default([])
 
   defaultTenantOid BigInt?
   defaultTenant    Tenant? @relation(fields: [defaultTenantOid], references: [oid], onDelete: SetNull, name: "DefaultTenant")

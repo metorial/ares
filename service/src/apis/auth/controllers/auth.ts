@@ -2,46 +2,13 @@ import { badRequestError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
+import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
 import { resolveApp } from '../lib/resolveApp';
 import { deviceApp } from '../middleware/device';
 import { authAttemptPresenter, authIntentPresenter, deviceUserPresenter } from '../presenters';
-
-let redirectUrlValidator = v.string({
-  modifiers:
-    process.env.ALLOW_CORS == 'true' || process.env.NODE_ENV != 'production'
-      ? []
-      : [
-          v.url({
-            hostnames: [
-              'metorial.com',
-              'metorial.work',
-
-              ...[
-                'app',
-                'auth',
-                'id',
-                'api',
-                'user',
-                'account',
-                'dashboard',
-                'team',
-                'organization',
-                'checkout',
-                'billing',
-                'support'
-              ].flatMap(s => [`${s}.metorial.com`, `${s}.metorial.work`]),
-
-              ...(process.env.NODE_ENV != 'production' ||
-              process.env.METORIAL_ENV != 'production'
-                ? ['localhost']
-                : [])
-            ]
-          })
-        ]
-});
 
 export let authenticationController = publicApp.controller({
   boot: deviceApp
@@ -82,37 +49,39 @@ export let authenticationController = publicApp.controller({
           type: v.literal('email'),
           clientId: v.string(),
           email: v.string(),
-          redirectUrl: redirectUrlValidator,
+          redirectUrl: v.string(),
           captchaToken: v.optional(v.string())
         }),
         v.object({
           type: v.literal('oauth'),
           clientId: v.string(),
           provider: v.enumOf(['google', 'github']),
-          redirectUrl: redirectUrlValidator
+          redirectUrl: v.string()
         }),
         v.object({
           type: v.literal('sso'),
           clientId: v.string(),
           ssoTenantId: v.string(),
-          redirectUrl: redirectUrlValidator
+          redirectUrl: v.string()
         }),
         v.object({
           type: v.literal('session'),
           clientId: v.string(),
           userOrSessionId: v.string(),
-          redirectUrl: redirectUrlValidator
+          redirectUrl: v.string()
         }),
         v.object({
           type: v.literal('internal'),
           clientId: v.string(),
           token: v.string(),
-          redirectUrl: redirectUrlValidator
+          redirectUrl: v.string()
         })
       ])
     )
     .do(async ({ context, device, input }) => {
       let app = await resolveApp(input.clientId);
+
+      validateRedirectUrl(input.redirectUrl, app.redirectDomains);
 
       if (input.type == 'email' || input.type == 'session') {
         let email = input.type == 'email' ? input.email : undefined;

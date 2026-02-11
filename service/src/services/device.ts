@@ -1,4 +1,5 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
+import { generatePlainId } from '@lowerdeck/id';
 import { addWeeks } from 'date-fns';
 import type {
   App,
@@ -103,10 +104,12 @@ class DeviceService {
   }
 
   async exchangeAuthAttemptForSession(d: { authAttempt: AuthAttempt }) {
-    return await withTransaction(async db => {
+    let authorizationCode = generatePlainId(50);
+
+    let session = await withTransaction(async db => {
       let updateRes = await db.authAttempt.updateMany({
         where: { id: d.authAttempt.id, status: 'pending' },
-        data: { status: 'consumed' }
+        data: { status: 'consumed', authorizationCode }
       });
       if (updateRes.count != 1) {
         throw new ServiceError(unauthorizedError({ message: 'Invalid auth attempt' }));
@@ -159,6 +162,8 @@ class DeviceService {
         }
       });
     });
+
+    return Object.assign(session, { authorizationCode });
   }
 
   async getDeviceSafe(d: { deviceId: string; deviceClientSecret: string }) {

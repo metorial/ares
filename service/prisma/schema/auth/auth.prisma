@@ -120,6 +120,8 @@ model AuthAttempt {
 
   status AuthAttemptStatus
 
+  authorizationCode String? @unique
+
   redirectUrl String
 
   ip String

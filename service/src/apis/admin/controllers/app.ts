@@ -35,7 +35,8 @@ export let appController = adminApp.controller({
     .input(
       v.object({
         defaultRedirectUrl: v.string(),
-        slug: v.optional(v.string())
+        slug: v.optional(v.string()),
+        redirectDomains: v.optional(v.array(v.string()))
       })
     )
     .do(async ({ input }) => {
@@ -48,11 +49,16 @@ export let appController = adminApp.controller({
     .input(
       v.object({
         id: v.string(),
-        slug: v.optional(v.string())
+        slug: v.optional(v.string()),
+        redirectDomains: v.optional(v.array(v.string()))
       })
     )
     .do(async ({ input }) => {
-      let app = await adminService.updateApp({ appId: input.id, slug: input.slug });
+      let app = await adminService.updateApp({
+        appId: input.id,
+        slug: input.slug,
+        redirectDomains: input.redirectDomains
+      });
       return appPresenter(app);
     })
 });

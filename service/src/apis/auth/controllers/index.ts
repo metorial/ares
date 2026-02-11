@@ -4,6 +4,7 @@ import { authenticationController } from './auth';
 import { authAttemptController } from './authAttempt';
 import { authIntentController } from './authIntent';
 import { deviceController } from './device';
+import { oauthController } from './oauth';
 import { sessionController } from './session';
 
 let rootController = publicApp.controller({
@@ -11,7 +12,8 @@ let rootController = publicApp.controller({
   authAttempt: authAttemptController,
   authIntent: authIntentController,
   session: sessionController,
-  device: deviceController
+  device: deviceController,
+  oauth: oauthController
 });
 
 export let authRPC = createServer({})(rootController);

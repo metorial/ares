@@ -92,6 +92,7 @@ export let authAttemptController = publicApp.controller({
       return {
         type: 'hook' as const,
         sessionId: session.id,
+        authorizationCode: session.authorizationCode,
         url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/auth-attempt/${await tickets.encode(
           {
             type: 'auth_attempt',

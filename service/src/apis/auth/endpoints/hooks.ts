@@ -5,6 +5,7 @@ import { v } from '@lowerdeck/validation';
 import * as Cookies from 'cookie';
 import { env } from '../../../env';
 import { tickets } from '../../../lib/tickets';
+import { validateRedirectUrl } from '../../../lib/validateRedirectUrl';
 import { authService } from '../../../services/auth';
 import { deviceService } from '../../../services/device';
 import { ssoService } from '../../../services/sso';
@@ -93,6 +94,8 @@ export let authHooksApp = createHono()
     });
 
     if (res.type == 'auth_attempt') {
+      validateRedirectUrl(res.authAttempt.redirectUrl, app.redirectDomains);
+
       let session = await deviceService.exchangeAuthAttemptForSession({
         authAttempt: res.authAttempt
       });
@@ -102,7 +105,9 @@ export let authHooksApp = createHono()
         Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
       );
 
-      return ctx.redirect(res.authAttempt.redirectUrl);
+      let redirectUrl = new URL(res.authAttempt.redirectUrl);
+      redirectUrl.searchParams.set('code', session.authorizationCode);
+      return ctx.redirect(redirectUrl.toString());
     }
 
     return ctx.redirect(
@@ -204,6 +209,8 @@ export let authHooksApp = createHono()
       app
     });
 
+    validateRedirectUrl(authAttempt.redirectUrl, app.redirectDomains);
+
     let session = await deviceService.exchangeAuthAttemptForSession({
       authAttempt
     });
@@ -213,7 +220,9 @@ export let authHooksApp = createHono()
       Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
     );
 
-    return ctx.redirect(authAttempt.redirectUrl);
+    let redirectUrl = new URL(authAttempt.redirectUrl);
+    redirectUrl.searchParams.set('code', session.authorizationCode);
+    return ctx.redirect(redirectUrl.toString());
   })
 
   .get('/auth-attempt/:ticket', async ctx => {
@@ -229,6 +238,9 @@ export let authHooksApp = createHono()
     let authAttempt = await authService.dangerouslyGetAuthAttemptOnlyById({
       authAttemptId: ticket.authAttemptId
     });
+
+    let authorizationCode: string | undefined;
+
     if (authAttempt.status != 'consumed') {
       if (authAttempt.clientSecret != ticket.authAttemptClientSecret) {
         throw new ServiceError(
@@ -242,11 +254,19 @@ export let authHooksApp = createHono()
         authAttempt
       });
 
+      authorizationCode = session.authorizationCode;
+
       ctx.res.headers.append(
         'Set-Cookie',
         Cookies.serialize(SESSION_ID_COOKIE_NAME, session.id, baseCookieOpts)
       );
+    } else {
+      authorizationCode = authAttempt.authorizationCode ?? undefined;
     }
 
-    return ctx.redirect(authAttempt.redirectUrl);
+    let redirectUrl = new URL(authAttempt.redirectUrl);
+    if (authorizationCode) {
+      redirectUrl.searchParams.set('code', authorizationCode);
+    }
+    return ctx.redirect(redirectUrl.toString());
   });

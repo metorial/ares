@@ -183,14 +183,15 @@ class AdminServiceImpl {
     return session.admin;
   }
 
-  async createApp(d: { defaultRedirectUrl: string; slug?: string }) {
+  async createApp(d: { defaultRedirectUrl: string; slug?: string; redirectDomains?: string[] }) {
     return withTransaction(async db => {
       let app = await db.app.create({
         data: {
           ...getId('app'),
           clientId: await ID.generateId('app_clientId'),
           slug: d.slug || null,
-          defaultRedirectUrl: d.defaultRedirectUrl
+          defaultRedirectUrl: d.defaultRedirectUrl,
+          redirectDomains: d.redirectDomains ?? []
         }
       });
 
@@ -213,13 +214,14 @@ class AdminServiceImpl {
     });
   }
 
-  async updateApp(d: { appId: string; slug?: string }) {
+  async updateApp(d: { appId: string; slug?: string; redirectDomains?: string[] }) {
     let app = await this.getApp({ appId: d.appId });
 
     return await db.app.update({
       where: { oid: app.oid },
       data: {
-        slug: d.slug !== undefined ? d.slug || null : undefined
+        slug: d.slug !== undefined ? d.slug || null : undefined,
+        redirectDomains: d.redirectDomains !== undefined ? d.redirectDomains : undefined
       },
       include: {
         defaultTenant: true,

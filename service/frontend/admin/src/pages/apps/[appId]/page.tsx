@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
 import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Badge, DataList, Heading, Select, Table } from '@radix-ui/themes';
+import { Badge, DataList, Heading, Select, Table, Text } from '@radix-ui/themes';
 import { Link, useParams } from 'react-router-dom';
 import {
   accessGroupsState,
@@ -60,6 +60,8 @@ export let AppPage = () => {
           </DataList.Item>
         ))}
       </DataList.Root>
+
+      <RedirectDomainsSection appId={appId!} app={app} />
 
       <div
         style={{
@@ -569,6 +571,135 @@ let AppAssignmentRow = ({
         </Button>
       </Table.Cell>
     </Table.Row>
+  );
+};
+
+let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
+  let update = useMutation(adminClient.app.update);
+
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 30,
+          marginBottom: 10
+        }}
+      >
+        <Heading as="h2" size="4">
+          Redirect Domains
+        </Heading>
+
+        <Button
+          size="1"
+          onClick={() =>
+            showModal(({ dialogProps, close }) => {
+              let addDomain = useMutation(adminClient.app.update);
+
+              let form = useForm({
+                initialValues: { domain: '' },
+                onSubmit: async values => {
+                  let [res] = await addDomain.mutate({
+                    id: appId,
+                    redirectDomains: [...(app.data.redirectDomains ?? []), values.domain]
+                  });
+                  if (res) {
+                    close();
+                    app.refetch();
+                  }
+                },
+                schema: yup =>
+                  yup.object({
+                    domain: yup.string().required('Domain is required')
+                  }) as any
+              });
+
+              return (
+                <Dialog.Wrapper {...dialogProps}>
+                  <Dialog.Title>Add Redirect Domain</Dialog.Title>
+
+                  <form onSubmit={form.handleSubmit}>
+                    <Input
+                      label="Domain"
+                      placeholder="example.com or *.example.com"
+                      {...form.getFieldProps('domain')}
+                    />
+                    <form.RenderError field="domain" />
+
+                    <Spacer size={15} />
+
+                    <Button
+                      type="submit"
+                      loading={addDomain.isLoading}
+                      success={addDomain.isSuccess}
+                    >
+                      Add
+                    </Button>
+                    <addDomain.RenderError />
+                  </form>
+                </Dialog.Wrapper>
+              );
+            })
+          }
+        >
+          Add Domain
+        </Button>
+      </div>
+
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>
+        If empty, all redirect domains are allowed. Supports wildcard subdomains like *.example.com
+      </p>
+
+      <Table.Root variant="surface">
+        <Table.Header>
+          <Table.Row>
+            <Table.ColumnHeaderCell>Domain</Table.ColumnHeaderCell>
+            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
+          </Table.Row>
+        </Table.Header>
+
+        <Table.Body>
+          {(app.data.redirectDomains ?? []).map((domain: string) => (
+            <Table.Row key={domain}>
+              <Table.Cell>
+                <Text size="2" style={{ fontFamily: 'monospace' }}>
+                  {domain}
+                </Text>
+              </Table.Cell>
+              <Table.Cell>
+                <Button
+                  size="1"
+                  variant="outline"
+                  loading={update.isLoading}
+                  onClick={async () => {
+                    if (!confirm(`Remove "${domain}" from redirect domains?`)) return;
+                    await update.mutate({
+                      id: appId,
+                      redirectDomains: (app.data.redirectDomains ?? []).filter(
+                        (d: string) => d !== domain
+                      )
+                    });
+                    app.refetch();
+                  }}
+                >
+                  Remove
+                </Button>
+              </Table.Cell>
+            </Table.Row>
+          ))}
+
+          {(!app.data.redirectDomains || app.data.redirectDomains.length === 0) && (
+            <Table.Row>
+              <Table.Cell colSpan={2} style={{ textAlign: 'center', color: '#888' }}>
+                No redirect domains configured (all domains allowed)
+              </Table.Cell>
+            </Table.Row>
+          )}
+        </Table.Body>
+      </Table.Root>
+    </>
   );
 };
 
