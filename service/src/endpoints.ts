@@ -4,9 +4,6 @@ import { authApi } from './apis/auth';
 import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
 import { db } from './db';
-import { ensureAdminApp } from './lib/adminApp';
-
-await ensureAdminApp();
 
 let server = Bun.serve({
   fetch: authApi,
