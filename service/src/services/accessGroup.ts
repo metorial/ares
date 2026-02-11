@@ -3,19 +3,20 @@ import type { User } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 
+let include = {
+  rules: true,
+  assignments: {
+    include: {
+      app: { select: { id: true, clientId: true } }
+    }
+  }
+};
+
 class AccessGroupServiceImpl {
   async get(d: { accessGroupId: string }) {
     let accessGroup = await db.accessGroup.findUnique({
       where: { id: d.accessGroupId },
-      include: {
-        rules: true,
-        assignments: {
-          include: {
-            app: { select: { id: true, clientId: true } },
-            appSurface: { select: { id: true, clientId: true } }
-          }
-        }
-      }
+      include
     });
     if (!accessGroup) throw new ServiceError(notFoundError('accessGroup'));
     return accessGroup;
@@ -24,15 +25,7 @@ class AccessGroupServiceImpl {
   async list(d: { appOid: bigint }) {
     return await db.accessGroup.findMany({
       where: { appOid: d.appOid },
-      include: {
-        _count: { select: { rules: true } },
-        assignments: {
-          include: {
-            app: { select: { id: true, clientId: true } },
-            appSurface: { select: { id: true, clientId: true } }
-          }
-        }
-      },
+      include,
       orderBy: { createdAt: 'desc' }
     });
   }
@@ -51,7 +44,7 @@ class AccessGroupServiceImpl {
           }))
         }
       },
-      include: { rules: true }
+      include
     });
   }
 
@@ -82,7 +75,7 @@ class AccessGroupServiceImpl {
       data: {
         name: d.name ?? undefined
       },
-      include: { rules: true }
+      include
     });
   }
 
@@ -107,20 +100,6 @@ class AccessGroupServiceImpl {
     });
   }
 
-  async assignToSurface(d: { accessGroupId: string; surfaceId: string }) {
-    let accessGroup = await this.get({ accessGroupId: d.accessGroupId });
-    let surface = await db.appSurface.findUnique({ where: { id: d.surfaceId } });
-    if (!surface) throw new ServiceError(notFoundError('appSurface'));
-
-    return await db.accessGroupAssignment.create({
-      data: {
-        ...getId('accessGroupAssignment'),
-        accessGroupOid: accessGroup.oid,
-        appSurfaceOid: surface.oid
-      }
-    });
-  }
-
   async unassign(d: { assignmentId: string }) {
     let assignment = await db.accessGroupAssignment.findUnique({
       where: { id: d.assignmentId }
@@ -140,17 +119,6 @@ class AccessGroupServiceImpl {
     });
   }
 
-  async listAssignmentsForSurface(d: { appSurfaceOid: bigint }) {
-    return await db.accessGroupAssignment.findMany({
-      where: { appSurfaceOid: d.appSurfaceOid },
-      include: {
-        accessGroup: {
-          include: { _count: { select: { rules: true } } }
-        }
-      }
-    });
-  }
-
   // ─── Access Checks ───
 
   async checkAppAccess(d: { user: User; appOid: bigint }): Promise<boolean> {
@@ -160,36 +128,6 @@ class AccessGroupServiceImpl {
     });
 
     // No access groups assigned → all users allowed
-    if (assignments.length === 0) return true;
-
-    // User must match at least one access group
-    for (let assignment of assignments) {
-      let matched = await this._checkRules({
-        user: d.user,
-        rules: assignment.accessGroup.rules,
-        appOid: d.appOid
-      });
-      if (matched) return true;
-    }
-
-    return false;
-  }
-
-  async checkSurfaceAccess(d: {
-    user: User;
-    appOid: bigint;
-    appSurfaceOid: bigint;
-  }): Promise<boolean> {
-    // Must pass app-level check first
-    let appAllowed = await this.checkAppAccess({ user: d.user, appOid: d.appOid });
-    if (!appAllowed) return false;
-
-    let assignments = await db.accessGroupAssignment.findMany({
-      where: { appSurfaceOid: d.appSurfaceOid },
-      include: { accessGroup: { include: { rules: true } } }
-    });
-
-    // No access groups assigned to surface → all users allowed
     if (assignments.length === 0) return true;
 
     // User must match at least one access group

@@ -107,22 +107,6 @@ export let accessGroupController = adminApp.controller({
       return { success: true };
     }),
 
-  assignToSurface: adminApp
-    .handler()
-    .input(
-      v.object({
-        accessGroupId: v.string(),
-        surfaceId: v.string()
-      })
-    )
-    .do(async ({ input }) => {
-      await accessGroupService.assignToSurface({
-        accessGroupId: input.accessGroupId,
-        surfaceId: input.surfaceId
-      });
-      return { success: true };
-    }),
-
   unassign: adminApp
     .handler()
     .input(
@@ -145,29 +129,6 @@ export let accessGroupController = adminApp.controller({
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
       let assignments = await accessGroupService.listAssignmentsForApp({ appOid: app.oid });
-      return assignments.map(a => ({
-        id: a.id,
-        accessGroup: {
-          id: a.accessGroup.id,
-          name: a.accessGroup.name,
-          counts: { rules: a.accessGroup._count.rules }
-        },
-        createdAt: a.createdAt
-      }));
-    }),
-
-  listSurfaceAssignments: adminApp
-    .handler()
-    .input(
-      v.object({
-        surfaceId: v.string()
-      })
-    )
-    .do(async ({ input }) => {
-      let surface = await adminService.getSurface({ surfaceId: input.surfaceId });
-      let assignments = await accessGroupService.listAssignmentsForSurface({
-        appSurfaceOid: surface.oid
-      });
       return assignments.map(a => ({
         id: a.id,
         accessGroup: {

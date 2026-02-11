@@ -2,7 +2,7 @@ model App {
   oid BigInt @id
   id  String @unique
 
-  clientId String @unique
+  clientId String  @unique
   slug     String? @unique
 
   hasTerms Boolean @default(true)
@@ -23,24 +23,8 @@ model App {
   emailDomains           EmailDomain[]
   userEmails             UserEmail[]
   oauthProviders         AppOAuthProvider[]
-  surfaces               AppSurface[]
   ssoTenants             SsoTenant[]
   auditLogs              AuditLog[]
   accessGroups           AccessGroup[]
-  accessGroupAssignments AccessGroupAssignment[]
-}
-
-model AppSurface {
-  oid BigInt @id
-  id  String @unique
-
-  clientId String @unique
-
-  appOid BigInt
-  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-
   accessGroupAssignments AccessGroupAssignment[]
 }

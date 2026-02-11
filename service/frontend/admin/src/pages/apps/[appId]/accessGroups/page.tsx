@@ -8,6 +8,7 @@ import { adminClient } from '../../../../state/client';
 export let AccessGroupsPage = () => {
   let { appId } = useParams();
   let accessGroups = accessGroupsState.use({ appId: appId! });
+  let accessGroupRoot = accessGroups;
 
   return renderWithLoader({ accessGroups })(({ accessGroups }) => (
     <>
@@ -40,7 +41,7 @@ export let AccessGroupsPage = () => {
                   });
                   if (res) {
                     close();
-                    accessGroups.refetch();
+                    accessGroupRoot.refetch();
                   }
                 },
                 schema: yup =>
@@ -59,7 +60,11 @@ export let AccessGroupsPage = () => {
 
                     <Spacer size={15} />
 
-                    <Button type="submit" loading={create.isLoading} success={create.isSuccess}>
+                    <Button
+                      type="submit"
+                      loading={create.isLoading}
+                      success={create.isSuccess}
+                    >
                       Create
                     </Button>
                     <create.RenderError />
@@ -89,7 +94,7 @@ export let AccessGroupsPage = () => {
               key={group.id}
               group={group}
               appId={appId!}
-              onUpdate={() => accessGroups.refetch()}
+              onUpdate={() => accessGroupRoot.refetch()}
             />
           ))}
 

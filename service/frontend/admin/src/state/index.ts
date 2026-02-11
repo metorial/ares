@@ -170,19 +170,7 @@ export let accessGroupsState = createLoader({
 export let accessGroupState = createLoader({
   name: 'accessGroup',
   fetch: (d: { id: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.accessGroup.get({ id: d.id })
-    );
-  },
-  mutators: {}
-});
-
-export let appSurfacesState = createLoader({
-  name: 'appSurfaces',
-  fetch: (d: { appId: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.app.listSurfaces({ appId: d.appId })
-    );
+    return redirectToAuthIfNotAuthenticated(() => adminClient.accessGroup.get({ id: d.id }));
   },
   mutators: {}
 });
@@ -197,22 +185,10 @@ export let appAccessGroupAssignmentsState = createLoader({
   mutators: {}
 });
 
-export let surfaceAccessGroupAssignmentsState = createLoader({
-  name: 'surfaceAccessGroupAssignments',
-  fetch: (d: { surfaceId: string }) => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.accessGroup.listSurfaceAssignments({ surfaceId: d.surfaceId })
-    );
-  },
-  mutators: {}
-});
-
 export let globalSsoTenantsState = createLoader({
   name: 'globalSsoTenants',
   fetch: () => {
-    return redirectToAuthIfNotAuthenticated(() =>
-      adminClient.sso.listGlobalTenants({})
-    );
+    return redirectToAuthIfNotAuthenticated(() => adminClient.sso.listGlobalTenants({}));
   },
   mutators: {}
 });

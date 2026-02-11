@@ -8,6 +8,7 @@ import { adminClient } from '../../../../../state/client';
 export let SsoTenantPage = () => {
   let { appId, ssoTenantId } = useParams();
   let ssoTenant = ssoTenantState.use({ id: ssoTenantId! });
+  let ssoTenantRoot = ssoTenant;
   let connections = ssoConnectionsState.use({ tenantId: ssoTenantId! });
   let createSetup = useMutation(adminClient.sso.createSetup);
   let setGlobal = useMutation(adminClient.sso.setGlobal);
@@ -39,7 +40,15 @@ export let SsoTenantPage = () => {
         ))}
       </DataList.Root>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 30, marginBottom: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 30,
+          marginBottom: 10
+        }}
+      >
         <Heading as="h2" size="4">
           Global SSO
         </Heading>
@@ -49,16 +58,24 @@ export let SsoTenantPage = () => {
         <Switch
           checked={ssoTenant.data.isGlobal}
           disabled={setGlobal.isLoading}
-          onCheckedChange={async (checked) => {
+          onCheckedChange={async checked => {
             let [res] = await setGlobal.mutate({ id: ssoTenantId!, isGlobal: checked });
-            if (res) ssoTenant.refetch();
+            if (res) ssoTenantRoot.refetch();
           }}
         />
         Available on all apps
       </Text>
       <setGlobal.RenderError />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 30, marginBottom: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 30,
+          marginBottom: 10
+        }}
+      >
         <Heading as="h2" size="4">
           Connections
         </Heading>
@@ -98,7 +115,9 @@ export let SsoTenantPage = () => {
               <Table.Cell>{connection.name}</Table.Cell>
               <Table.Cell>{connection.providerType}</Table.Cell>
               <Table.Cell>{connection.providerName ?? '-'}</Table.Cell>
-              <Table.Cell>{new Date(connection.createdAt).toLocaleDateString('de-at')}</Table.Cell>
+              <Table.Cell>
+                {new Date(connection.createdAt).toLocaleDateString('de-at')}
+              </Table.Cell>
             </Table.Row>
           ))}
 

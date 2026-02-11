@@ -2,17 +2,14 @@ import type {
   AccessGroup,
   AccessGroupAssignment,
   AccessGroupRule,
-  App,
-  AppSurface
+  App
 } from '../../../../prisma/generated/client';
 
 export let accessGroupPresenter = (
   accessGroup: AccessGroup & {
-    rules?: AccessGroupRule[];
-    _count?: { rules?: number };
-    assignments?: (AccessGroupAssignment & {
-      app?: Pick<App, 'id' | 'clientId'> | null;
-      appSurface?: Pick<AppSurface, 'id' | 'clientId'> | null;
+    rules: AccessGroupRule[];
+    assignments: (AccessGroupAssignment & {
+      app: Pick<App, 'id' | 'clientId'>;
     })[];
   }
 ) => ({
@@ -21,7 +18,7 @@ export let accessGroupPresenter = (
   id: accessGroup.id,
   name: accessGroup.name,
 
-  rules: accessGroup.rules?.map(rule => ({
+  rules: accessGroup.rules.map(rule => ({
     id: rule.id,
     type: rule.type,
     value: rule.value
@@ -29,16 +26,13 @@ export let accessGroupPresenter = (
 
   assignments: accessGroup.assignments?.map(a => ({
     id: a.id,
-    target: a.app
-      ? { type: 'app' as const, id: a.app.id, clientId: a.app.clientId }
-      : a.appSurface
-        ? { type: 'surface' as const, id: a.appSurface.id, clientId: a.appSurface.clientId }
-        : null,
+    target: { type: 'app' as const, id: a.app.id, clientId: a.app.clientId },
     createdAt: a.createdAt
   })),
 
   counts: {
-    rules: accessGroup._count?.rules ?? accessGroup.rules?.length ?? 0
+    rules: accessGroup.rules.length,
+    assignments: accessGroup.assignments.length
   },
 
   createdAt: accessGroup.createdAt,

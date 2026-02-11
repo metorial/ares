@@ -2,7 +2,7 @@ import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks'
 import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
 import { Heading, Select, Table } from '@radix-ui/themes';
 import { Link, useParams } from 'react-router-dom';
-import { accessGroupState, appSurfacesState } from '../../../../../state';
+import { accessGroupState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
 
 let RULE_TYPES = [
@@ -18,9 +18,9 @@ let ruleTypeLabel = (type: string) => RULE_TYPES.find(t => t.value === type)?.la
 export let AccessGroupPage = () => {
   let { appId, accessGroupId } = useParams();
   let accessGroup = accessGroupState.use({ id: accessGroupId! });
-  let surfaces = appSurfacesState.use({ appId: appId! });
+  let accessGroupRoot = accessGroup;
 
-  return renderWithLoader({ accessGroup, surfaces })(({ accessGroup, surfaces }) => (
+  return renderWithLoader({ accessGroup })(({ accessGroup }) => (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
         <Heading as="h1" size="7">
@@ -34,7 +34,15 @@ export let AccessGroupPage = () => {
         </Link>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, marginBottom: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 20,
+          marginBottom: 10
+        }}
+      >
         <Heading as="h2" size="4">
           Rules
         </Heading>
@@ -62,7 +70,7 @@ export let AccessGroupPage = () => {
                   });
                   if (res) {
                     close();
-                    accessGroup.refetch();
+                    accessGroupRoot.refetch();
                   }
                 },
                 schema: yup =>
@@ -78,7 +86,14 @@ export let AccessGroupPage = () => {
 
                   <form onSubmit={form.handleSubmit}>
                     <div style={{ marginBottom: 10 }}>
-                      <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500 }}>
+                      <label
+                        style={{
+                          display: 'block',
+                          marginBottom: 4,
+                          fontSize: 14,
+                          fontWeight: 500
+                        }}
+                      >
                         Type
                       </label>
                       <Select.Root
@@ -101,7 +116,11 @@ export let AccessGroupPage = () => {
 
                     <Spacer size={15} />
 
-                    <Button type="submit" loading={update.isLoading} success={update.isSuccess}>
+                    <Button
+                      type="submit"
+                      loading={update.isLoading}
+                      success={update.isSuccess}
+                    >
                       Add Rule
                     </Button>
                     <update.RenderError />
@@ -131,7 +150,7 @@ export let AccessGroupPage = () => {
               rule={rule}
               accessGroupId={accessGroupId!}
               allRules={accessGroup.data.rules}
-              onUpdate={() => accessGroup.refetch()}
+              onUpdate={() => accessGroupRoot.refetch()}
             />
           ))}
 
@@ -145,7 +164,15 @@ export let AccessGroupPage = () => {
         </Table.Body>
       </Table.Root>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 30, marginBottom: 10 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 30,
+          marginBottom: 10
+        }}
+      >
         <Heading as="h2" size="4">
           Assignments
         </Heading>
@@ -155,7 +182,6 @@ export let AccessGroupPage = () => {
           onClick={() =>
             showModal(({ dialogProps, close }) => {
               let assignApp = useMutation(adminClient.accessGroup.assignToApp);
-              let assignSurface = useMutation(adminClient.accessGroup.assignToSurface);
 
               let existingAssignments = accessGroup.data.assignments ?? [];
               let isAppAssigned = existingAssignments.some(
@@ -167,16 +193,11 @@ export let AccessGroupPage = () => {
                   .filter((a: any) => a.target?.type === 'surface')
                   .map((a: any) => a.target.id)
               );
-              let availableSurfaces = surfaces.data.filter(
-                (s: any) => !assignedSurfaceIds.has(s.id)
-              );
 
               let targets = [
-                ...(!isAppAssigned ? [{ value: `app:${appId}`, label: 'App (entire app)' }] : []),
-                ...availableSurfaces.map((s: any) => ({
-                  value: `surface:${s.id}`,
-                  label: `Surface: ${s.clientId}`
-                }))
+                ...(!isAppAssigned
+                  ? [{ value: `app:${appId}`, label: 'App (entire app)' }]
+                  : [])
               ];
 
               let form = useForm({
@@ -189,15 +210,10 @@ export let AccessGroupPage = () => {
                       accessGroupId: accessGroupId!,
                       appId: id
                     });
-                  } else {
-                    [res] = await assignSurface.mutate({
-                      accessGroupId: accessGroupId!,
-                      surfaceId: id
-                    });
                   }
                   if (res) {
                     close();
-                    accessGroup.refetch();
+                    accessGroupRoot.refetch();
                   }
                 },
                 schema: yup =>
@@ -206,8 +222,8 @@ export let AccessGroupPage = () => {
                   }) as any
               });
 
-              let isLoading = assignApp.isLoading || assignSurface.isLoading;
-              let isSuccess = assignApp.isSuccess || assignSurface.isSuccess;
+              let isLoading = assignApp.isLoading;
+              let isSuccess = assignApp.isSuccess;
 
               return (
                 <Dialog.Wrapper {...dialogProps}>
@@ -218,7 +234,14 @@ export let AccessGroupPage = () => {
                   ) : (
                     <form onSubmit={form.handleSubmit}>
                       <div style={{ marginBottom: 10 }}>
-                        <label style={{ display: 'block', marginBottom: 4, fontSize: 14, fontWeight: 500 }}>
+                        <label
+                          style={{
+                            display: 'block',
+                            marginBottom: 4,
+                            fontSize: 14,
+                            fontWeight: 500
+                          }}
+                        >
                           Target
                         </label>
                         <Select.Root
@@ -240,7 +263,6 @@ export let AccessGroupPage = () => {
                         Assign
                       </Button>
                       <assignApp.RenderError />
-                      <assignSurface.RenderError />
                     </form>
                   )}
                 </Dialog.Wrapper>
@@ -270,7 +292,7 @@ export let AccessGroupPage = () => {
             <AssignmentRow
               key={assignment.id}
               assignment={assignment}
-              onUpdate={() => accessGroup.refetch()}
+              onUpdate={() => accessGroupRoot.refetch()}
             />
           ))}
 
@@ -287,13 +309,7 @@ export let AccessGroupPage = () => {
   ));
 };
 
-let AssignmentRow = ({
-  assignment,
-  onUpdate
-}: {
-  assignment: any;
-  onUpdate: () => void;
-}) => {
+let AssignmentRow = ({ assignment, onUpdate }: { assignment: any; onUpdate: () => void }) => {
   let unassign = useMutation(adminClient.accessGroup.unassign);
 
   let target = assignment.target;
