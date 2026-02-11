@@ -1,3 +1,4 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { userPresenter } from '../../auth/presenters';
@@ -8,21 +9,18 @@ export let userController = adminApp.controller({
   list: adminApp
     .handler()
     .input(
-      v.object({
-        appId: v.string(),
-        search: v.optional(v.string()),
-        after: v.optional(v.string())
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string(),
+          search: v.optional(v.string())
+        })
+      )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let users = await adminService.listUsers({
-        app,
-        search: input.search,
-        after: input.after
-      });
-
-      return await Promise.all(users.map(userPresenter));
+      let paginator = await adminService.listUsers({ app, search: input.search });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, userPresenter);
     }),
 
   get: adminApp
@@ -47,8 +45,9 @@ export let userController = adminApp.controller({
       })
     )
     .do(async ({ input, admin }) => {
+      let user = await adminService.getUser({ userId: input.id });
       let impersonation = await adminService.impersonateUser({
-        userId: input.id,
+        user,
         reason: input.reason,
         password: input.password,
         admin

@@ -1,3 +1,5 @@
+import { Paginator } from '@lowerdeck/pagination';
+import type { App } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 
@@ -25,6 +27,25 @@ class AuditLogService {
       .catch(err => {
         console.error('Failed to write audit log:', err);
       });
+  }
+
+  async list(d: { app: App; type?: string }) {
+    return Paginator.create(
+      ({ prisma }) =>
+        prisma(
+          async opts =>
+            await db.auditLog.findMany({
+              ...opts,
+              where: {
+                appOid: d.app.oid,
+                ...(d.type ? { type: d.type } : {})
+              },
+              include: { user: true },
+              orderBy: [{ createdAt: 'desc' }]
+            })
+        ),
+      { defaultOrder: 'desc' }
+    );
   }
 }
 

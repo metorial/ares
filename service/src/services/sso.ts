@@ -1,13 +1,12 @@
 import { badRequestError, notFoundError, ServiceError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
-import type { App, SsoConnection, SsoTenant } from '../../prisma/generated/client';
+import { Paginator } from '@lowerdeck/pagination';
+import type { App, SsoConnection, SsoTenant, SsoUser } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId, ID } from '../id';
 import { jackson } from '../lib/jackson';
 
 class SsoServiceImpl {
-  // ─── Tenant ───
-
   async createTenant(d: {
     app: App;
     input: {
@@ -47,7 +46,10 @@ class SsoServiceImpl {
   }
 
   async getTenantById(d: { tenantId: string }) {
-    let tenant = await db.ssoTenant.findUnique({ where: { id: d.tenantId } });
+    let tenant = await db.ssoTenant.findUnique({
+      where: { id: d.tenantId },
+      include: { _count: { select: { connections: true } } }
+    });
     if (!tenant) throw new ServiceError(notFoundError('sso.tenant'));
     return tenant;
   }
@@ -58,7 +60,42 @@ class SsoServiceImpl {
     return tenant;
   }
 
-  // ─── Connection ───
+  async listTenants(d: { app: App }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoTenant.findMany({
+            ...opts,
+            where: { appOid: d.app.oid },
+            include: { _count: { select: { connections: true } } }
+          })
+      )
+    );
+  }
+
+  async listGlobalTenants() {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoTenant.findMany({
+            ...opts,
+            where: { isGlobal: true },
+            include: {
+              _count: { select: { connections: true } },
+              app: { select: { id: true, clientId: true } }
+            }
+          })
+      )
+    );
+  }
+
+  async setGlobal(d: { tenant: SsoTenant; isGlobal: boolean }) {
+    return await db.ssoTenant.update({
+      where: { oid: d.tenant.oid },
+      data: { isGlobal: d.isGlobal },
+      include: { _count: { select: { connections: true } } }
+    });
+  }
 
   async createSamlConnection(d: {
     tenant: SsoTenant;
@@ -149,6 +186,18 @@ class SsoServiceImpl {
     });
   }
 
+  async listConnections(d: { tenant: SsoTenant }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.ssoConnection.findMany({
+            ...opts,
+            where: { tenantOid: d.tenant.oid }
+          })
+      )
+    );
+  }
+
   async getConnectionsByTenant(d: { tenant: SsoTenant }) {
     return await db.ssoConnection.findMany({
       where: { tenantOid: d.tenant.oid }
@@ -162,8 +211,6 @@ class SsoServiceImpl {
     if (!con) throw new ServiceError(notFoundError('sso.connection'));
     return con;
   }
-
-  // ─── Setup ───
 
   async createSetup(d: { tenant: SsoTenant; input: { redirectUri: string } }) {
     return await db.ssoConnectionSetup.create({
@@ -236,8 +283,6 @@ class SsoServiceImpl {
     return { setup, tenant: setup.tenant, connection };
   }
 
-  // ─── Auth ───
-
   async createAuth(d: {
     tenant: SsoTenant;
     input: {
@@ -299,8 +344,6 @@ class SsoServiceImpl {
     };
   }
 
-  // ─── User upsert (used during auth callback) ───
-
   async upsertUser(d: {
     tenant: SsoTenant;
     email: string;
@@ -332,7 +375,7 @@ class SsoServiceImpl {
   async upsertUserProfile(d: {
     tenant: SsoTenant;
     connection: SsoConnection;
-    user: { oid: bigint };
+    user: SsoUser;
     data: {
       email: string;
       uid: string;

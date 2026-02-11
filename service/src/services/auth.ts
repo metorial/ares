@@ -801,6 +801,57 @@ class AuthServiceImpl {
 
     return authAttempt;
   }
+
+  async exchangeAuthorizationCode(d: { app: App; authorizationCode: string }) {
+    let authAttempt = await db.authAttempt.findUnique({
+      where: { authorizationCode: d.authorizationCode }
+    });
+
+    if (!authAttempt || authAttempt.status !== 'consumed') {
+      throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
+    }
+
+    if (authAttempt.appOid !== d.app.oid) {
+      throw new ServiceError(badRequestError({ message: 'Invalid authorization code' }));
+    }
+
+    await db.authAttempt.update({
+      where: { oid: authAttempt.oid },
+      data: { authorizationCode: null }
+    });
+
+    let [user, session] = await Promise.all([
+      db.user.findUnique({ where: { oid: authAttempt.userOid } }),
+      db.authDeviceUserSession.findFirst({
+        where: {
+          deviceOid: authAttempt.deviceOid,
+          userOid: authAttempt.userOid,
+          loggedOutAt: null,
+          expiresAt: { gte: new Date() }
+        }
+      })
+    ]);
+
+    if (!user) {
+      throw new ServiceError(notFoundError('user'));
+    }
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName
+      },
+      session: session
+        ? {
+            id: session.id,
+            expiresAt: session.expiresAt
+          }
+        : null
+    };
+  }
 }
 
 export let authService = Service.create('AuthService', () => new AuthServiceImpl()).build();

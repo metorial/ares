@@ -51,12 +51,12 @@ class DeviceService {
     return !d.session.loggedOutAt && d.session.expiresAt.getTime() > Date.now();
   }
 
-  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice; app?: App }) {
+  async getLoggedInAndLoggedOutUsersForDevice(d: { device: AuthDevice; app: App }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
         impersonationOid: null,
-        ...(d.app ? { appOid: d.app.oid } : {})
+        appOid: d.app.oid
       },
       include: {
         user: true

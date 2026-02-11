@@ -1,3 +1,4 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { internalApp } from '../_app';
@@ -7,15 +8,17 @@ export let tenantController = internalApp.controller({
   list: internalApp
     .handler()
     .input(
-      v.object({
-        appId: v.string(),
-        search: v.optional(v.string()),
-        after: v.optional(v.string())
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
-      let tenants = await adminService.listTenants(input);
-      return tenants.map(tenantPresenter);
+      let app = await adminService.getApp({ appId: input.appId });
+      let paginator = await adminService.listTenants({ app });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, tenantPresenter);
     }),
 
   get: internalApp

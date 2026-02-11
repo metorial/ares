@@ -1,3 +1,4 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { accessGroupService } from '../../../services/accessGroup';
 import { adminService } from '../../../services/admin';
@@ -8,14 +9,17 @@ export let accessGroupController = adminApp.controller({
   list: adminApp
     .handler()
     .input(
-      v.object({
-        appId: v.string()
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let accessGroups = await accessGroupService.list({ appOid: app.oid });
-      return accessGroups.map(accessGroupPresenter);
+      let paginator = await accessGroupService.list({ app });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, accessGroupPresenter);
     }),
 
   get: adminApp
@@ -47,9 +51,8 @@ export let accessGroupController = adminApp.controller({
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
       let accessGroup = await accessGroupService.create({
-        appOid: app.oid,
-        name: input.name,
-        rules: input.rules
+        app,
+        input: { name: input.name, rules: input.rules }
       });
       return accessGroupPresenter(accessGroup);
     }),
@@ -71,12 +74,12 @@ export let accessGroupController = adminApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let accessGroup = await accessGroupService.update({
-        accessGroupId: input.id,
-        name: input.name,
-        rules: input.rules
+      let accessGroup = await accessGroupService.get({ accessGroupId: input.id });
+      let updated = await accessGroupService.update({
+        accessGroup,
+        input: { name: input.name, rules: input.rules }
       });
-      return accessGroupPresenter(accessGroup);
+      return accessGroupPresenter(updated);
     }),
 
   delete: adminApp
@@ -87,7 +90,8 @@ export let accessGroupController = adminApp.controller({
       })
     )
     .do(async ({ input }) => {
-      await accessGroupService.delete({ accessGroupId: input.id });
+      let accessGroup = await accessGroupService.get({ accessGroupId: input.id });
+      await accessGroupService.delete({ accessGroup });
       return { success: true };
     }),
 
@@ -100,10 +104,9 @@ export let accessGroupController = adminApp.controller({
       })
     )
     .do(async ({ input }) => {
-      await accessGroupService.assignToApp({
-        accessGroupId: input.accessGroupId,
-        appId: input.appId
-      });
+      let accessGroup = await accessGroupService.get({ accessGroupId: input.accessGroupId });
+      let app = await adminService.getApp({ appId: input.appId });
+      await accessGroupService.assignToApp({ accessGroup, app });
       return { success: true };
     }),
 
@@ -128,7 +131,7 @@ export let accessGroupController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let assignments = await accessGroupService.listAssignmentsForApp({ appOid: app.oid });
+      let assignments = await accessGroupService.listAssignmentsForApp({ app });
       return assignments.map(a => ({
         id: a.id,
         accessGroup: {

@@ -1,5 +1,5 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '../../../db';
 import { env } from '../../../env';
 import { adminService } from '../../../services/admin';
 import { ssoService } from '../../../services/sso';
@@ -10,22 +10,17 @@ export let ssoController = adminApp.controller({
   listTenants: adminApp
     .handler()
     .input(
-      v.object({
-        appId: v.string()
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-
-      let tenants = await db.ssoTenant.findMany({
-        where: { appOid: app.oid },
-        include: {
-          _count: { select: { connections: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      return tenants.map(ssoTenantPresenter);
+      let paginator = await ssoService.listTenants({ app });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, ssoTenantPresenter);
     }),
 
   getTenant: adminApp
@@ -37,15 +32,7 @@ export let ssoController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.id });
-
-      let tenantWithCount = await db.ssoTenant.findUnique({
-        where: { oid: tenant.oid },
-        include: {
-          _count: { select: { connections: true } }
-        }
-      });
-
-      return ssoTenantPresenter(tenantWithCount!);
+      return ssoTenantPresenter(tenant);
     }),
 
   createTenant: adminApp
@@ -58,12 +45,10 @@ export let ssoController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-
       let tenant = await ssoService.createTenant({
         app,
         input: { name: input.name }
       });
-
       return ssoTenantPresenter({ ...tenant, _count: { connections: 0 } });
     }),
 
@@ -77,7 +62,6 @@ export let ssoController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-
       let setup = await ssoService.createSetup({
         tenant,
         input: {
@@ -93,31 +77,26 @@ export let ssoController = adminApp.controller({
   listConnections: adminApp
     .handler()
     .input(
-      v.object({
-        tenantId: v.string()
-      })
+      Paginator.validate(
+        v.object({
+          tenantId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connections = await ssoService.getConnectionsByTenant({ tenant });
-
-      return connections.map(ssoConnectionPresenter);
+      let paginator = await ssoService.listConnections({ tenant });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, ssoConnectionPresenter);
     }),
 
   listGlobalTenants: adminApp
     .handler()
-    .input(v.object({}))
-    .do(async () => {
-      let tenants = await db.ssoTenant.findMany({
-        where: { isGlobal: true },
-        include: {
-          _count: { select: { connections: true } },
-          app: { select: { id: true, clientId: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      return tenants.map(t => ({
+    .input(Paginator.validate())
+    .do(async ({ input }) => {
+      let paginator = await ssoService.listGlobalTenants();
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, t => ({
         ...ssoTenantPresenter(t),
         app: { id: t.app.id, clientId: t.app.clientId }
       }));
@@ -133,15 +112,7 @@ export let ssoController = adminApp.controller({
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.id });
-
-      let updated = await db.ssoTenant.update({
-        where: { oid: tenant.oid },
-        data: { isGlobal: input.isGlobal },
-        include: {
-          _count: { select: { connections: true } }
-        }
-      });
-
+      let updated = await ssoService.setGlobal({ tenant, isGlobal: input.isGlobal });
       return ssoTenantPresenter(updated);
     })
 });

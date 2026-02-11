@@ -1,3 +1,4 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { internalApp } from '../_app';
@@ -6,15 +7,11 @@ import { appPresenter } from '../presenters';
 export let appController = internalApp.controller({
   list: internalApp
     .handler()
-    .input(
-      v.object({
-        search: v.optional(v.string()),
-        after: v.optional(v.string())
-      })
-    )
+    .input(Paginator.validate())
     .do(async ({ input }) => {
-      let apps = await adminService.listApps(input);
-      return apps.map(appPresenter);
+      let paginator = await adminService.listApps();
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, appPresenter);
     }),
 
   get: internalApp
@@ -53,11 +50,11 @@ export let appController = internalApp.controller({
       })
     )
     .do(async ({ input }) => {
-      let app = await adminService.updateApp({
-        appId: input.id,
-        slug: input.slug,
-        redirectDomains: input.redirectDomains
+      let app = await adminService.getApp({ appId: input.id });
+      let updated = await adminService.updateApp({
+        app,
+        input: { slug: input.slug, redirectDomains: input.redirectDomains }
       });
-      return appPresenter(app);
+      return appPresenter(updated);
     })
 });

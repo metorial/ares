@@ -5,9 +5,10 @@ import {
   unauthorizedError
 } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
+import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { addHours } from 'date-fns';
-import type { Admin, App } from '../../prisma/generated/client';
+import type { Admin, App, User } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
@@ -18,18 +19,13 @@ class AdminServiceImpl {
     await authBlockService.registerBlock({ email: d.email, context: d.context });
 
     let admin = await db.admin.findUnique({
-      where: {
-        email: d.email
-      }
+      where: { email: d.email }
     });
 
     let err = new ServiceError(
-      unauthorizedError({
-        message: 'Invalid email or password'
-      })
+      unauthorizedError({ message: 'Invalid email or password' })
     );
 
-    // Skip password check in development for easier testing
     if (process.env.NODE_ENV != 'development') {
       if (!admin) throw err;
       let valid = await Bun.password.verify(d.password, admin.password);
@@ -81,24 +77,26 @@ class AdminServiceImpl {
     });
   }
 
-  async listUsers(d: { app: App; after?: string; search?: string }) {
-    return await db.user.findMany({
-      where: {
-        appOid: d.app.oid,
-        OR: d.search
-          ? [
-              { userEmails: { some: { email: { contains: d.search } } } },
-              { name: { contains: d.search } },
-              { firstName: { contains: d.search } },
-              { lastName: { contains: d.search } }
-            ]
-          : undefined,
-
-        id: d.after ? { gt: d.after } : undefined
-      },
-      take: 100,
-      orderBy: { id: 'asc' }
-    });
+  async listUsers(d: { app: App; search?: string }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.user.findMany({
+            ...opts,
+            where: {
+              appOid: d.app.oid,
+              OR: d.search
+                ? [
+                    { userEmails: { some: { email: { contains: d.search } } } },
+                    { name: { contains: d.search } },
+                    { firstName: { contains: d.search } },
+                    { lastName: { contains: d.search } }
+                  ]
+                : undefined
+            }
+          })
+      )
+    );
   }
 
   async getUser(d: { userId: string }) {
@@ -107,29 +105,21 @@ class AdminServiceImpl {
       include: {
         userEmails: true,
         authDeviceUserSessions: {
-          include: {
-            device: true
-          }
+          include: { device: true }
         },
         authAttempts: true
       }
     });
-    if (!user) {
-      throw new ServiceError(notFoundError('user', d.userId));
-    }
-
+    if (!user) throw new ServiceError(notFoundError('user', d.userId));
     return user;
   }
 
   async impersonateUser(d: {
-    userId: string;
+    user: User;
     password?: string;
     admin: Admin;
     reason: string;
   }) {
-    let user = await this.getUser({ userId: d.userId });
-
-    // BE VERY CAREFUL WITH THIS
     if (process.env.NODE_ENV != 'development') {
       if (d.admin.password.length) {
         if (!d.password) {
@@ -147,7 +137,7 @@ class AdminServiceImpl {
       data: {
         ...getId('userImpersonation'),
         clientSecret: generatePlainId(50),
-        userOid: user.oid,
+        userOid: d.user.oid,
         adminOid: d.admin.oid,
         reason: d.reason,
         expiresAt: addHours(new Date(), 1)
@@ -155,26 +145,21 @@ class AdminServiceImpl {
     });
   }
 
-  async listAdmins(d: { after?: string; search?: string }) {
-    return await db.admin.findMany({
-      where: {
-        OR: d.search
-          ? [{ name: { contains: d.search } }, { email: { contains: d.search } }]
-          : undefined,
-
-        id: d.after ? { gt: d.after } : undefined
-      },
-      take: 25,
-      orderBy: { id: 'asc' }
-    });
+  async listAdmins() {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.admin.findMany({
+            ...opts
+          })
+      )
+    );
   }
 
   async authenticateAdmin(d: { clientSecret: string }) {
     let session = await db.adminSession.findUnique({
       where: { clientSecret: d.clientSecret },
-      include: {
-        admin: true
-      }
+      include: { admin: true }
     });
     if (!session || session.expiresAt < new Date()) {
       throw new ServiceError(unauthorizedError({ message: 'Invalid session' }));
@@ -214,14 +199,12 @@ class AdminServiceImpl {
     });
   }
 
-  async updateApp(d: { appId: string; slug?: string; redirectDomains?: string[] }) {
-    let app = await this.getApp({ appId: d.appId });
-
+  async updateApp(d: { app: App; input: { slug?: string; redirectDomains?: string[] } }) {
     return await db.app.update({
-      where: { oid: app.oid },
+      where: { oid: d.app.oid },
       data: {
-        slug: d.slug !== undefined ? d.slug || null : undefined,
-        redirectDomains: d.redirectDomains !== undefined ? d.redirectDomains : undefined
+        slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
+        redirectDomains: d.input.redirectDomains !== undefined ? d.input.redirectDomains : undefined
       },
       include: {
         defaultTenant: true,
@@ -230,19 +213,19 @@ class AdminServiceImpl {
     });
   }
 
-  async listApps(d: { after?: string; search?: string }) {
-    return await db.app.findMany({
-      where: {
-        OR: d.search ? [{ clientId: { contains: d.search } }] : undefined,
-        id: d.after ? { gt: d.after } : undefined
-      },
-      include: {
-        defaultTenant: true,
-        _count: { select: { users: true, tenants: true } }
-      },
-      take: 50,
-      orderBy: { id: 'asc' }
-    });
+  async listApps() {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.app.findMany({
+            ...opts,
+            include: {
+              defaultTenant: true,
+              _count: { select: { users: true, tenants: true } }
+            }
+          })
+      )
+    );
   }
 
   async getApp(d: { appId: string }) {
@@ -254,28 +237,23 @@ class AdminServiceImpl {
         _count: { select: { users: true } }
       }
     });
-    if (!app) {
-      throw new ServiceError(notFoundError('app', d.appId));
-    }
-
+    if (!app) throw new ServiceError(notFoundError('app', d.appId));
     return app;
   }
 
-  async listTenants(d: { appId: string; after?: string; search?: string }) {
-    let app = await this.getApp({ appId: d.appId });
-
-    return await db.tenant.findMany({
-      where: {
-        appOid: app.oid,
-        OR: d.search ? [{ clientId: { contains: d.search } }] : undefined,
-        id: d.after ? { gt: d.after } : undefined
-      },
-      include: {
-        _count: { select: { users: true } }
-      },
-      take: 50,
-      orderBy: { id: 'asc' }
-    });
+  async listTenants(d: { app: App }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.tenant.findMany({
+            ...opts,
+            where: { appOid: d.app.oid },
+            include: {
+              _count: { select: { users: true } }
+            }
+          })
+      )
+    );
   }
 
   async getTenant(d: { tenantId: string }) {
@@ -286,10 +264,7 @@ class AdminServiceImpl {
         _count: { select: { users: true } }
       }
     });
-    if (!tenant) {
-      throw new ServiceError(notFoundError('tenant', d.tenantId));
-    }
-
+    if (!tenant) throw new ServiceError(notFoundError('tenant', d.tenantId));
     return tenant;
   }
 }

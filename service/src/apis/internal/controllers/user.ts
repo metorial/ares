@@ -1,3 +1,4 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
 import { userPresenter as authUserPresenter } from '../../auth/presenters';
@@ -7,21 +8,18 @@ export let userController = internalApp.controller({
   list: internalApp
     .handler()
     .input(
-      v.object({
-        appId: v.string(),
-        search: v.optional(v.string()),
-        after: v.optional(v.string())
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string(),
+          search: v.optional(v.string())
+        })
+      )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-      let users = await adminService.listUsers({
-        app,
-        search: input.search,
-        after: input.after
-      });
-
-      return await Promise.all(users.map(authUserPresenter));
+      let paginator = await adminService.listUsers({ app, search: input.search });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, authUserPresenter);
     }),
 
   get: internalApp

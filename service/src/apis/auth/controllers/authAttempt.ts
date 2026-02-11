@@ -23,43 +23,22 @@ export let authAttemptController = publicApp.controller({
       })
     )
     .do(async ({ input, device }) => {
-      if (input.from == 'auth_intent') {
-        let authIntent = await authService.getAuthIntent({
-          authIntentId: input.authIntent.id,
-          clientSecret: input.authIntent.clientSecret
-        });
+      let authIntent = await authService.getAuthIntent({
+        authIntentId: input.authIntent.id,
+        clientSecret: input.authIntent.clientSecret
+      });
 
-        let app = await db.app.findUnique({
-          where: { oid: authIntent.appOid }
-        });
-        if (!app) throw new ServiceError(notFoundError('app'));
+      let app = await db.app.findUnique({
+        where: { oid: authIntent.appOid }
+      });
+      if (!app) throw new ServiceError(notFoundError('app'));
 
-        let authAttempt = await authService.completeAuthIntent({
-          authIntent,
-          app
-        });
+      let authAttempt = await authService.completeAuthIntent({
+        authIntent,
+        app
+      });
 
-        return authAttemptPresenter(authAttempt);
-      }
-      // else if (input.from == 'session') {
-      //   let sessions = await deviceService.getLoggedInUsersForDevice({ device });
-      //   let session = sessions.find(
-      //     s => s.id == input.userOrSessionId || s.userId == input.userOrSessionId
-      //   );
-      //   if (!session) {
-      //     throw new ServiceError(badRequestError({ message: 'User not logged in' }));
-      //   }
-
-      //   let authAttempt = await authService.createAuthAttempt({
-      //     device,
-      //     user: session.user,
-      //     redirectUrl: input.redirectUrl
-      //   });
-
-      //   return authAttemptPresenter(authAttempt);
-      // }
-
-      throw new Error('Invalid input');
+      return authAttemptPresenter(authAttempt);
     }),
 
   get: authAttemptApp

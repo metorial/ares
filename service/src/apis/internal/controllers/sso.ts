@@ -1,5 +1,5 @@
+import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
-import { db } from '../../../db';
 import { env } from '../../../env';
 import { adminService } from '../../../services/admin';
 import { ssoService } from '../../../services/sso';
@@ -10,22 +10,17 @@ export let ssoController = internalApp.controller({
   listTenants: internalApp
     .handler()
     .input(
-      v.object({
-        appId: v.string()
-      })
+      Paginator.validate(
+        v.object({
+          appId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-
-      let tenants = await db.ssoTenant.findMany({
-        where: { appOid: app.oid },
-        include: {
-          _count: { select: { connections: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      return tenants.map(ssoTenantPresenter);
+      let paginator = await ssoService.listTenants({ app });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, ssoTenantPresenter);
     }),
 
   getTenant: internalApp
@@ -37,15 +32,7 @@ export let ssoController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.id });
-
-      let tenantWithCount = await db.ssoTenant.findUnique({
-        where: { oid: tenant.oid },
-        include: {
-          _count: { select: { connections: true } }
-        }
-      });
-
-      return ssoTenantPresenter(tenantWithCount!);
+      return ssoTenantPresenter(tenant);
     }),
 
   createTenant: internalApp
@@ -58,12 +45,10 @@ export let ssoController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
-
       let tenant = await ssoService.createTenant({
         app,
         input: { name: input.name }
       });
-
       return ssoTenantPresenter({ ...tenant, _count: { connections: 0 } });
     }),
 
@@ -77,12 +62,9 @@ export let ssoController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-
       let setup = await ssoService.createSetup({
         tenant,
-        input: {
-          redirectUri: input.redirectUri
-        }
+        input: { redirectUri: input.redirectUri }
       });
 
       return {
@@ -93,14 +75,16 @@ export let ssoController = internalApp.controller({
   listConnections: internalApp
     .handler()
     .input(
-      v.object({
-        tenantId: v.string()
-      })
+      Paginator.validate(
+        v.object({
+          tenantId: v.string()
+        })
+      )
     )
     .do(async ({ input }) => {
       let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
-      let connections = await ssoService.getConnectionsByTenant({ tenant });
-
-      return connections.map(ssoConnectionPresenter);
+      let paginator = await ssoService.listConnections({ tenant });
+      let list = await paginator.run(input);
+      return Paginator.presentLight(list, ssoConnectionPresenter);
     })
 });

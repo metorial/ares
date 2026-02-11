@@ -1,5 +1,6 @@
 import { notFoundError, ServiceError } from '@lowerdeck/error';
-import type { User } from '../../prisma/generated/client';
+import { Paginator } from '@lowerdeck/pagination';
+import type { AccessGroup, App, User } from '../../prisma/generated/client';
 import { db } from '../db';
 import { getId } from '../id';
 
@@ -22,22 +23,30 @@ class AccessGroupServiceImpl {
     return accessGroup;
   }
 
-  async list(d: { appOid: bigint }) {
-    return await db.accessGroup.findMany({
-      where: { appOid: d.appOid },
-      include,
-      orderBy: { createdAt: 'desc' }
-    });
+  async list(d: { app: App }) {
+    return Paginator.create(({ prisma }) =>
+      prisma(
+        async opts =>
+          await db.accessGroup.findMany({
+            ...opts,
+            where: { appOid: d.app.oid },
+            include
+          })
+      )
+    );
   }
 
-  async create(d: { appOid: bigint; name: string; rules: { type: string; value: string }[] }) {
+  async create(d: {
+    app: App;
+    input: { name: string; rules: { type: string; value: string }[] };
+  }) {
     return await db.accessGroup.create({
       data: {
         ...getId('accessGroup'),
-        appOid: d.appOid,
-        name: d.name,
+        appOid: d.app.oid,
+        name: d.input.name,
         rules: {
-          create: d.rules.map(rule => ({
+          create: d.input.rules.map(rule => ({
             ...getId('accessGroupRule'),
             type: rule.type,
             value: rule.value
@@ -49,21 +58,18 @@ class AccessGroupServiceImpl {
   }
 
   async update(d: {
-    accessGroupId: string;
-    name?: string;
-    rules?: { type: string; value: string }[];
+    accessGroup: AccessGroup;
+    input: { name?: string; rules?: { type: string; value: string }[] };
   }) {
-    let accessGroup = await this.get({ accessGroupId: d.accessGroupId });
-
-    if (d.rules) {
+    if (d.input.rules) {
       await db.accessGroupRule.deleteMany({
-        where: { accessGroupOid: accessGroup.oid }
+        where: { accessGroupOid: d.accessGroup.oid }
       });
 
       await db.accessGroupRule.createMany({
-        data: d.rules.map(rule => ({
+        data: d.input.rules.map(rule => ({
           ...getId('accessGroupRule'),
-          accessGroupOid: accessGroup.oid,
+          accessGroupOid: d.accessGroup.oid,
           type: rule.type,
           value: rule.value
         }))
@@ -71,31 +77,22 @@ class AccessGroupServiceImpl {
     }
 
     return await db.accessGroup.update({
-      where: { oid: accessGroup.oid },
-      data: {
-        name: d.name ?? undefined
-      },
+      where: { oid: d.accessGroup.oid },
+      data: { name: d.input.name ?? undefined },
       include
     });
   }
 
-  async delete(d: { accessGroupId: string }) {
-    let accessGroup = await this.get({ accessGroupId: d.accessGroupId });
-    await db.accessGroup.delete({ where: { oid: accessGroup.oid } });
+  async delete(d: { accessGroup: AccessGroup }) {
+    await db.accessGroup.delete({ where: { oid: d.accessGroup.oid } });
   }
 
-  // ─── Assignments ───
-
-  async assignToApp(d: { accessGroupId: string; appId: string }) {
-    let accessGroup = await this.get({ accessGroupId: d.accessGroupId });
-    let app = await db.app.findUnique({ where: { id: d.appId } });
-    if (!app) throw new ServiceError(notFoundError('app'));
-
+  async assignToApp(d: { accessGroup: AccessGroup; app: App }) {
     return await db.accessGroupAssignment.create({
       data: {
         ...getId('accessGroupAssignment'),
-        accessGroupOid: accessGroup.oid,
-        appOid: app.oid
+        accessGroupOid: d.accessGroup.oid,
+        appOid: d.app.oid
       }
     });
   }
@@ -108,9 +105,9 @@ class AccessGroupServiceImpl {
     await db.accessGroupAssignment.delete({ where: { oid: assignment.oid } });
   }
 
-  async listAssignmentsForApp(d: { appOid: bigint }) {
+  async listAssignmentsForApp(d: { app: App }) {
     return await db.accessGroupAssignment.findMany({
-      where: { appOid: d.appOid },
+      where: { appOid: d.app.oid },
       include: {
         accessGroup: {
           include: { _count: { select: { rules: true } } }
@@ -119,23 +116,19 @@ class AccessGroupServiceImpl {
     });
   }
 
-  // ─── Access Checks ───
-
-  async checkAppAccess(d: { user: User; appOid: bigint }): Promise<boolean> {
+  async checkAppAccess(d: { user: User; app: App }): Promise<boolean> {
     let assignments = await db.accessGroupAssignment.findMany({
-      where: { appOid: d.appOid },
+      where: { appOid: d.app.oid },
       include: { accessGroup: { include: { rules: true } } }
     });
 
-    // No access groups assigned → all users allowed
     if (assignments.length === 0) return true;
 
-    // User must match at least one access group
     for (let assignment of assignments) {
       let matched = await this._checkRules({
         user: d.user,
         rules: assignment.accessGroup.rules,
-        appOid: d.appOid
+        appOid: d.app.oid
       });
       if (matched) return true;
     }
@@ -146,20 +139,6 @@ class AccessGroupServiceImpl {
   async checkAccess(d: { user: User; accessGroupId: string }): Promise<boolean> {
     let accessGroup = await db.accessGroup.findUnique({
       where: { id: d.accessGroupId },
-      include: { rules: true }
-    });
-    if (!accessGroup) return false;
-
-    return this._checkRules({
-      user: d.user,
-      rules: accessGroup.rules,
-      appOid: accessGroup.appOid
-    });
-  }
-
-  async checkAccessByOid(d: { user: User; accessGroupOid: bigint }): Promise<boolean> {
-    let accessGroup = await db.accessGroup.findUnique({
-      where: { oid: d.accessGroupOid },
       include: { rules: true }
     });
     if (!accessGroup) return false;
@@ -188,17 +167,6 @@ class AccessGroupServiceImpl {
       values.push(rule.value);
     }
 
-    let verifiedEmails: string[] | null = null;
-    let getVerifiedEmails = async () => {
-      if (verifiedEmails) return verifiedEmails;
-      let emails = await db.userEmail.findMany({
-        where: { userOid: d.user.oid, verifiedAt: { not: null } }
-      });
-      verifiedEmails = emails.map(e => e.email);
-      return verifiedEmails;
-    };
-
-    // email rules
     let emailValues = rulesByType.get('email');
     if (emailValues) {
       let match = await db.userEmail.findFirst({
@@ -211,7 +179,6 @@ class AccessGroupServiceImpl {
       if (match) return true;
     }
 
-    // email_domain rules
     let domainValues = rulesByType.get('email_domain');
     if (domainValues) {
       let match = await db.userEmail.findFirst({
@@ -224,13 +191,15 @@ class AccessGroupServiceImpl {
       if (match) return true;
     }
 
-    // For SSO rules, we need the user's verified emails and the app's SSO tenants
     let ssoRuleTypes = ['sso_tenant', 'sso_group', 'sso_role'];
     let hasSsoRules = ssoRuleTypes.some(t => rulesByType.has(t));
 
     if (hasSsoRules) {
-      let emails = await getVerifiedEmails();
-      if (emails.length === 0) return false;
+      let emails = await db.userEmail.findMany({
+        where: { userOid: d.user.oid, verifiedAt: { not: null } }
+      });
+      let emailAddresses = emails.map(e => e.email);
+      if (emailAddresses.length === 0) return false;
 
       let tenants = await db.ssoTenant.findMany({
         where: { OR: [{ appOid: d.appOid }, { isGlobal: true }] },
@@ -239,7 +208,6 @@ class AccessGroupServiceImpl {
       let tenantOids = tenants.map(t => t.oid);
       if (tenantOids.length === 0) return false;
 
-      // sso_tenant rules
       let ssoTenantValues = rulesByType.get('sso_tenant');
       if (ssoTenantValues) {
         let matchingTenants = await db.ssoTenant.findMany({
@@ -253,33 +221,31 @@ class AccessGroupServiceImpl {
           let match = await db.ssoUserProfile.findFirst({
             where: {
               tenantOid: { in: matchingTenants.map(t => t.oid) },
-              email: { in: emails }
+              email: { in: emailAddresses }
             }
           });
           if (match) return true;
         }
       }
 
-      // sso_group rules
       let ssoGroupValues = rulesByType.get('sso_group');
       if (ssoGroupValues) {
         let match = await db.ssoUserProfile.findFirst({
           where: {
             tenantOid: { in: tenantOids },
-            email: { in: emails },
+            email: { in: emailAddresses },
             groups: { hasSome: ssoGroupValues }
           }
         });
         if (match) return true;
       }
 
-      // sso_role rules
       let ssoRoleValues = rulesByType.get('sso_role');
       if (ssoRoleValues) {
         let match = await db.ssoUserProfile.findFirst({
           where: {
             tenantOid: { in: tenantOids },
-            email: { in: emails },
+            email: { in: emailAddresses },
             roles: { hasSome: ssoRoleValues }
           }
         });
