@@ -104,7 +104,7 @@ export let AppsPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {apps.data.map((app: any) => (
+          {apps.data.items.map((app: any) => (
             <Table.Row key={app.id}>
               <Table.Cell>{app.clientId}</Table.Cell>
               <Table.Cell>{app.slug ?? '-'}</Table.Cell>
@@ -123,11 +123,11 @@ export let AppsPage = () => {
         </Table.Body>
       </Table.Root>
 
-      {apps.data.length > 0 && (
+      {apps.data.items.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => setAfter(apps.data[apps.data.length - 1]?.id)}
+          onClick={() => setAfter(apps.data.items[apps.data.items.length - 1]?.id)}
         >
           Load More
         </Button>

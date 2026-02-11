@@ -188,7 +188,7 @@ export let AppPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {oauthProviders.data.map((provider: any) => (
+          {oauthProviders.data.items.map((provider: any) => (
             <OAuthProviderRow
               key={provider.id}
               provider={provider}
@@ -196,7 +196,7 @@ export let AppPage = () => {
             />
           ))}
 
-          {oauthProviders.data.length === 0 && (
+          {oauthProviders.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={6} style={{ textAlign: 'center', color: '#888' }}>
                 No OAuth providers configured
@@ -283,7 +283,7 @@ export let AppPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {ssoTenants.data.map((tenant: any) => (
+          {ssoTenants.data.items.map((tenant: any) => (
             <Table.Row key={tenant.id}>
               <Table.Cell>
                 {tenant.name}
@@ -306,8 +306,8 @@ export let AppPage = () => {
             </Table.Row>
           ))}
 
-          {globalSsoTenants.data
-            .filter((gt: any) => !ssoTenants.data.some((t: any) => t.id === gt.id))
+          {globalSsoTenants.data.items
+            .filter((gt: any) => !ssoTenants.data.items.some((t: any) => t.id === gt.id))
             .map((tenant: any) => (
               <Table.Row key={tenant.id}>
                 <Table.Cell>
@@ -331,7 +331,7 @@ export let AppPage = () => {
               </Table.Row>
             ))}
 
-          {ssoTenants.data.length === 0 && globalSsoTenants.data.length === 0 && (
+          {ssoTenants.data.items.length === 0 && globalSsoTenants.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={5} style={{ textAlign: 'center', color: '#888' }}>
                 No SSO tenants configured
@@ -372,7 +372,7 @@ export let AppPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {accessGroups.data.map((group: any) => (
+          {accessGroups.data.items.map((group: any) => (
             <Table.Row key={group.id}>
               <Table.Cell>{group.name}</Table.Cell>
               <Table.Cell>{group.counts.rules}</Table.Cell>
@@ -387,7 +387,7 @@ export let AppPage = () => {
             </Table.Row>
           ))}
 
-          {accessGroups.data.length === 0 && (
+          {accessGroups.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
                 No access groups configured
@@ -410,7 +410,7 @@ export let AppPage = () => {
           App Access Whitelist
         </Heading>
 
-        {accessGroups.data.length > 0 && (
+        {accessGroups.data.items.length > 0 && (
           <Button
             size="1"
             onClick={() =>
@@ -419,7 +419,7 @@ export let AppPage = () => {
                 let assignedIds = new Set(
                   appAssignments.data.map((a: any) => a.accessGroup.id)
                 );
-                let available = accessGroups.data.filter((g: any) => !assignedIds.has(g.id));
+                let available = accessGroups.data.items.filter((g: any) => !assignedIds.has(g.id));
 
                 let form = useForm({
                   initialValues: { accessGroupId: available[0]?.id ?? '' },

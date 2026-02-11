@@ -12,64 +12,14 @@ import type { Admin, App, User } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
-import { authBlockService } from './authBlock';
 
 class AdminServiceImpl {
-  async adminLogin(d: { email: string; password: string; context: Context }) {
-    await authBlockService.registerBlock({ email: d.email, context: d.context });
-
-    let admin = await db.admin.findUnique({
-      where: { email: d.email }
-    });
-
-    let err = new ServiceError(
-      unauthorizedError({ message: 'Invalid email or password' })
-    );
-
-    if (process.env.NODE_ENV != 'development') {
-      if (!admin) throw err;
-      let valid = await Bun.password.verify(d.password, admin.password);
-      if (!valid) throw err;
-    } else if (!admin) {
-      admin = await db.admin.create({
-        data: {
-          ...getId('admin'),
-          email: d.email,
-          name: d.email.split('@')[0]!,
-          password: ''
-        }
-      });
-    }
-
+  async createAdminSession(d: { admin: Admin; context: Context }) {
     return await db.adminSession.create({
       data: {
         ...getId('adminSession'),
         clientSecret: generatePlainId(50),
-        adminOid: admin.oid,
-        expiresAt: addHours(new Date(), 1),
-        ip: d.context.ip,
-        ua: d.context.ua
-      }
-    });
-  }
-
-  async adminLoginWithOAuth(d: { email: string; name: string; context: Context }) {
-    let admin = await db.admin.upsert({
-      where: { email: d.email },
-      create: {
-        ...getId('admin'),
-        email: d.email,
-        name: d.name,
-        password: ''
-      },
-      update: {}
-    });
-
-    return await db.adminSession.create({
-      data: {
-        ...getId('adminSession'),
-        clientSecret: generatePlainId(50),
-        adminOid: admin.oid,
+        adminOid: d.admin.oid,
         expiresAt: addHours(new Date(), 1),
         ip: d.context.ip,
         ua: d.context.ua

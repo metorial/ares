@@ -11,7 +11,7 @@ export let UsersPage = () => {
 
   let apps = appsState.use({});
 
-  let firstAppId = apps.data?.[0]?.id;
+  let firstAppId = apps.data?.items?.[0]?.id;
   let [selectedAppId, setSelectedAppId] = useState<string | undefined>();
   useEffect(() => {
     if (firstAppId) setSelectedAppId(firstAppId);
@@ -27,7 +27,7 @@ export let UsersPage = () => {
         appId={selectedAppId}
         search={search}
         after={after}
-        apps={apps.data}
+        apps={apps.data.items}
         onAppChange={setSelectedAppId}
         onSearchChange={setSearch}
         onLoadMore={setAfter}
@@ -95,7 +95,7 @@ let UsersForApp = ({
         </Table.Header>
 
         <Table.Body>
-          {users.data.map(user => (
+          {users.data.items.map(user => (
             <Table.Row key={user.id}>
               <Table.Cell>{user.name}</Table.Cell>
               <Table.Cell>{user.email}</Table.Cell>
@@ -112,11 +112,11 @@ let UsersForApp = ({
         </Table.Body>
       </Table.Root>
 
-      {users.data.length > 0 && (
+      {users.data.items.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => onLoadMore(users.data[users.data.length - 1]?.id)}
+          onClick={() => onLoadMore(users.data.items[users.data.items.length - 1]?.id)}
         >
           Load More
         </Button>

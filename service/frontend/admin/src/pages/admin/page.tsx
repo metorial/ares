@@ -41,7 +41,7 @@ export let AdminsPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {admins.data.map((admin: any) => (
+          {admins.data.items.map((admin: any) => (
             <Table.Row key={admin.id}>
               <Table.Cell>{admin.name}</Table.Cell>
               <Table.Cell>{admin.email}</Table.Cell>
@@ -53,11 +53,11 @@ export let AdminsPage = () => {
         </Table.Body>
       </Table.Root>
 
-      {admins.data.length > 0 && (
+      {admins.data.items.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => setAfter(admins.data[admins.data.length - 1]?.id)}
+          onClick={() => setAfter(admins.data.items[admins.data.items.length - 1]?.id)}
         >
           Load More
         </Button>

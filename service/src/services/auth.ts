@@ -33,7 +33,6 @@ class AuthServiceImpl {
   async getAuthOptions(d: { app: App }) {
     let options: { type: string; name?: string }[] = [{ type: 'email' }];
 
-    // Query database for enabled OAuth providers for this app
     let oauthProviders = await db.appOAuthProvider.findMany({
       where: {
         appOid: d.app.oid,
@@ -45,7 +44,6 @@ class AuthServiceImpl {
       options.push({ type: `oauth.${provider.provider}` });
     }
 
-    // Query SSO tenants with completed status for this app (including global tenants)
     let ssoTenants = await db.ssoTenant.findMany({
       where: {
         status: 'completed',
@@ -244,7 +242,6 @@ class AuthServiceImpl {
       );
     }
 
-    // Get or create user identity provider
     let identityProvider = await db.userIdentityProvider.findFirst({
       where: { identifier: d.provider }
     });
@@ -363,7 +360,6 @@ class AuthServiceImpl {
   }) {
     let providerIdentifier = `sso.${d.ssoConnectionId}`;
 
-    // Get or create user identity provider
     let identityProvider = await db.userIdentityProvider.findFirst({
       where: { identifier: providerIdentifier }
     });
@@ -377,7 +373,6 @@ class AuthServiceImpl {
       });
     }
 
-    // Find or create user identity
     let userIdentity = await db.userIdentity.findFirst({
       where: {
         providerOid: identityProvider.oid,
@@ -386,7 +381,6 @@ class AuthServiceImpl {
     });
 
     if (userIdentity) {
-      // Update existing identity with latest profile data
       userIdentity = await db.userIdentity.update({
         where: { oid: userIdentity.oid },
         data: {
@@ -412,7 +406,6 @@ class AuthServiceImpl {
       });
     }
 
-    // Link identity to user if not already linked
     if (!userIdentity.userOid) {
       let user = await userService.findByEmailSafe({
         email: d.ssoUser.email,

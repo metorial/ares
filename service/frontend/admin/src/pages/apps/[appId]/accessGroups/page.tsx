@@ -89,7 +89,7 @@ export let AccessGroupsPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {accessGroups.data.map((group: any) => (
+          {accessGroups.data.items.map((group: any) => (
             <AccessGroupRow
               key={group.id}
               group={group}
@@ -98,7 +98,7 @@ export let AccessGroupsPage = () => {
             />
           ))}
 
-          {accessGroups.data.length === 0 && (
+          {accessGroups.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
                 No access groups configured

@@ -3,6 +3,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { Layout } from './pages/_layout';
 import { RouterErrorPage } from './pages/_error/routerError';
 import { AuditLogsPage } from './pages/auditLogs/page';
+import { AuthCallbackPage } from './pages/auth/callback';
 import { LoginPage } from './pages/login';
 import { UsersPage } from './pages/users/page';
 import { UserPage } from './pages/users/[userId]/page';
@@ -22,6 +23,16 @@ let router = createBrowserRouter([
     element: (
       <>
         <LoginPage />
+        <Toaster />
+        <ModalRoot />
+      </>
+    )
+  },
+  {
+    path: '/auth/callback',
+    element: (
+      <>
+        <AuthCallbackPage />
         <Toaster />
         <ModalRoot />
       </>

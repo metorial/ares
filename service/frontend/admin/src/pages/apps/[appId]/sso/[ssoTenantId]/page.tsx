@@ -110,7 +110,7 @@ export let SsoTenantPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {connections.data.map((connection: any) => (
+          {connections.data.items.map((connection: any) => (
             <Table.Row key={connection.id}>
               <Table.Cell>{connection.name}</Table.Cell>
               <Table.Cell>{connection.providerType}</Table.Cell>
@@ -121,7 +121,7 @@ export let SsoTenantPage = () => {
             </Table.Row>
           ))}
 
-          {connections.data.length === 0 && (
+          {connections.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
                 No connections configured

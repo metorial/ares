@@ -23,7 +23,7 @@ let AUDIT_LOG_TYPES = [
 export let AuditLogsPage = () => {
   let apps = appsState.use({});
 
-  let firstAppId = apps.data?.[0]?.id;
+  let firstAppId = apps.data?.items?.[0]?.id;
   let [selectedAppId, setSelectedAppId] = useState<string | undefined>();
   useEffect(() => {
     if (firstAppId) setSelectedAppId(firstAppId);
@@ -37,7 +37,7 @@ export let AuditLogsPage = () => {
     return (
       <AuditLogsForApp
         appId={selectedAppId}
-        apps={apps.data}
+        apps={apps.data.items}
         onAppChange={setSelectedAppId}
       />
     );
@@ -106,7 +106,7 @@ let AuditLogsForApp = ({
         </Table.Header>
 
         <Table.Body>
-          {auditLogs.data.map((log: any) => (
+          {auditLogs.data.items.map((log: any) => (
             <Table.Row key={log.id}>
               <Table.Cell>
                 <code style={{ fontSize: 12 }}>{log.type}</code>
@@ -120,7 +120,7 @@ let AuditLogsForApp = ({
             </Table.Row>
           ))}
 
-          {auditLogs.data.length === 0 && (
+          {auditLogs.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={5} style={{ textAlign: 'center', color: '#888' }}>
                 No audit logs found
@@ -130,11 +130,11 @@ let AuditLogsForApp = ({
         </Table.Body>
       </Table.Root>
 
-      {auditLogs.data.length > 0 && (
+      {auditLogs.data.items.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => setAfter(auditLogs.data[auditLogs.data.length - 1]?.id)}
+          onClick={() => setAfter(auditLogs.data.items[auditLogs.data.items.length - 1]?.id)}
         >
           Load More
         </Button>

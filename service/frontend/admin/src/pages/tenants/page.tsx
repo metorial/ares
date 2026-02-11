@@ -11,7 +11,7 @@ export let TenantsPage = () => {
 
   let apps = appsState.use({});
 
-  let firstAppId = apps.data?.[0]?.id;
+  let firstAppId = apps.data?.items?.[0]?.id;
   let [selectedAppId, setSelectedAppId] = useState<string | undefined>();
   useEffect(() => {
     if (firstAppId) setSelectedAppId(firstAppId);
@@ -27,7 +27,7 @@ export let TenantsPage = () => {
         appId={selectedAppId}
         search={search}
         after={after}
-        apps={apps.data}
+        apps={apps.data.items}
         onAppChange={setSelectedAppId}
         onSearchChange={setSearch}
         onLoadMore={setAfter}
@@ -95,7 +95,7 @@ let TenantsForApp = ({
         </Table.Header>
 
         <Table.Body>
-          {tenants.data.map((tenant: any) => (
+          {tenants.data.items.map((tenant: any) => (
             <Table.Row key={tenant.id}>
               <Table.Cell>{tenant.clientId}</Table.Cell>
               <Table.Cell>{tenant.counts.users}</Table.Cell>
@@ -112,11 +112,11 @@ let TenantsForApp = ({
         </Table.Body>
       </Table.Root>
 
-      {tenants.data.length > 0 && (
+      {tenants.data.items.length > 0 && (
         <Button
           size="1"
           style={{ marginTop: 20 }}
-          onClick={() => onLoadMore(tenants.data[tenants.data.length - 1]?.id)}
+          onClick={() => onLoadMore(tenants.data.items[tenants.data.items.length - 1]?.id)}
         >
           Load More
         </Button>

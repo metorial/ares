@@ -34,7 +34,7 @@ export let SettingsPage = () => {
         </Table.Header>
 
         <Table.Body>
-          {globalSsoTenants.data.map((tenant: any) => (
+          {globalSsoTenants.data.items.map((tenant: any) => (
             <Table.Row key={tenant.id}>
               <Table.Cell>
                 {tenant.name}
@@ -54,7 +54,7 @@ export let SettingsPage = () => {
             </Table.Row>
           ))}
 
-          {globalSsoTenants.data.length === 0 && (
+          {globalSsoTenants.data.items.length === 0 && (
             <Table.Row>
               <Table.Cell colSpan={6} style={{ textAlign: 'center', color: '#888' }}>
                 No global SSO tenants configured. Mark an SSO tenant as global from its detail page.

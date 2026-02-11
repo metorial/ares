@@ -1,6 +1,7 @@
 import { createHono } from '@lowerdeck/hono';
 import path, { join } from 'path';
-import { htmlEncode } from '../../../lib/htmlEncode';
+import { env } from '../../../env';
+import { adminAppClientId } from '../../../lib/adminApp';
 
 let assetsDir = path.join(process.cwd(), 'frontend', 'admin', 'dist', 'assets');
 
@@ -40,12 +41,16 @@ export let publicApp = createHono()
     });
   })
   .get('*', async c => {
-    let preload = {};
+    let preload = {
+      adminAppClientId,
+      authUrl: env.service.ARES_AUTH_URL,
+      adminUrl: env.service.ARES_ADMIN_URL
+    };
 
     return c.html(
       (await getIndexHtmlText()).replace(
         '<!-- PRELOAD -->',
-        `<script type="application/json" id="preload-data">${htmlEncode(JSON.stringify(preload))}</script>`
+        `<script type="application/json" id="preload-data">${JSON.stringify(preload)}</script>`
       )
     );
   });
