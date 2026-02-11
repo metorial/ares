@@ -64,12 +64,7 @@ class AdminServiceImpl {
     return user;
   }
 
-  async impersonateUser(d: {
-    user: User;
-    password?: string;
-    admin: Admin;
-    reason: string;
-  }) {
+  async impersonateUser(d: { user: User; password?: string; admin: Admin; reason: string }) {
     if (process.env.NODE_ENV != 'development') {
       if (d.admin.password.length) {
         if (!d.password) {
@@ -118,7 +113,11 @@ class AdminServiceImpl {
     return session.admin;
   }
 
-  async createApp(d: { defaultRedirectUrl: string; slug?: string; redirectDomains?: string[] }) {
+  async createApp(d: {
+    defaultRedirectUrl: string;
+    slug?: string;
+    redirectDomains?: string[];
+  }) {
     return withTransaction(async db => {
       let app = await db.app.create({
         data: {
@@ -149,12 +148,52 @@ class AdminServiceImpl {
     });
   }
 
+  async upsertApp(d: {
+    defaultRedirectUrl: string;
+    slug: string;
+    redirectDomains?: string[];
+  }) {
+    let existingApp = await db.app.findUnique({
+      where: { slug: d.slug },
+      include: {
+        defaultTenant: true,
+        _count: { select: { users: true, tenants: true } }
+      }
+    });
+    try {
+      return await this.createApp({
+        defaultRedirectUrl: d.defaultRedirectUrl,
+        slug: d.slug,
+        redirectDomains: d.redirectDomains
+      });
+    } catch (e: any) {
+      if (e.code !== 'P2002') {
+        throw e;
+      }
+
+      existingApp = await db.app.findUnique({
+        where: { slug: d.slug },
+        include: {
+          defaultTenant: true,
+          _count: { select: { users: true, tenants: true } }
+        }
+      });
+      if (!existingApp) throw e;
+    }
+
+    return await this.updateApp({
+      app: existingApp,
+      input: { redirectDomains: d.redirectDomains, slug: d.slug }
+    });
+  }
+
   async updateApp(d: { app: App; input: { slug?: string; redirectDomains?: string[] } }) {
     return await db.app.update({
       where: { oid: d.app.oid },
       data: {
         slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
-        redirectDomains: d.input.redirectDomains !== undefined ? d.input.redirectDomains : undefined
+        redirectDomains:
+          d.input.redirectDomains !== undefined ? d.input.redirectDomains : undefined
       },
       include: {
         defaultTenant: true,

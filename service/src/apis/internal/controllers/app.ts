@@ -40,6 +40,20 @@ export let appController = internalApp.controller({
       return appPresenter(app);
     }),
 
+  upsert: internalApp
+    .handler()
+    .input(
+      v.object({
+        defaultRedirectUrl: v.string(),
+        slug: v.string(),
+        redirectDomains: v.optional(v.array(v.string()))
+      })
+    )
+    .do(async ({ input }) => {
+      let app = await adminService.upsertApp(input);
+      return appPresenter(app);
+    }),
+
   update: internalApp
     .handler()
     .input(
