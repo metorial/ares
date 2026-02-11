@@ -825,7 +825,7 @@ class AuthServiceImpl {
       })
     ]);
 
-    if (!user) {
+    if (!user || !session) {
       throw new ServiceError(notFoundError('user'));
     }
 
@@ -835,14 +835,14 @@ class AuthServiceImpl {
         email: user.email,
         name: user.name,
         firstName: user.firstName,
-        lastName: user.lastName
+        lastName: user.lastName,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
       },
-      session: session
-        ? {
-            id: session.id,
-            expiresAt: session.expiresAt
-          }
-        : null
+      session: {
+        id: session.id,
+        expiresAt: session.expiresAt
+      }
     };
   }
 }
