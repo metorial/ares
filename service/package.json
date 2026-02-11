@@ -7,7 +7,7 @@
     "start": "bun run server:start",
     "dev": "bun --watch ./src/server.ts",
     "server:build": "bun build ./src/server.ts --outdir ./dist --target bun --sourcemap=external",
-    "server:start": "bun ./dist/index.js",
+    "server:start": "bun ./dist/server.js",
     "frontend:build": "bun run frontend:build:auth && bun run frontend:build:admin",
     "frontend:build:auth": "cd frontend/auth && vite build",
     "frontend:build:admin": "cd frontend/admin && vite build",
