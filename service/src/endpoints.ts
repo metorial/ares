@@ -1,6 +1,7 @@
 import { redis } from 'bun';
 import { adminApi } from './apis/admin';
 import { authApi } from './apis/auth';
+import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
 import { db } from './db';
 
@@ -19,9 +20,15 @@ let ssoServer = Bun.serve({
   port: 52122
 });
 
+let internalServer = Bun.serve({
+  fetch: internalApi,
+  port: 52123
+});
+
 console.log(`Auth service running on http://localhost:${server.port}`);
 console.log(`Admin service running on http://localhost:${adminServer.port}`);
 console.log(`SSO service running on http://localhost:${ssoServer.port}`);
+console.log(`Internal service running on http://localhost:${internalServer.port}`);
 
 Bun.serve({
   fetch: async _ => {
