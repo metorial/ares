@@ -1,3 +1,4 @@
+import { ProgrammablePromise } from '@lowerdeck/programmable-promise';
 import {
   createRelayClient,
   type EmailIdentity,
@@ -9,16 +10,42 @@ export let relay: ReturnType<typeof createRelayClient> = createRelayClient({
   endpoint: env.service.RELAY_URL
 });
 
-export let sender = await relay.sender.upsert({
-  identifier: 'metorial-ares',
-  name: 'Metorial Ares'
-});
+let senderProm = new ProgrammablePromise<Awaited<ReturnType<typeof relay.sender.upsert>>>();
+export let sender = senderProm.promise;
 
-export let emailIdentity = await relay.emailIdentity.upsert({
-  name: env.email.EMAIL_NAME,
-  email: env.email.EMAIL_ADDRESS,
-  senderId: sender.id
-});
+let emailIdentityProm = new ProgrammablePromise<
+  Awaited<ReturnType<typeof relay.emailIdentity.upsert>>
+>();
+export let emailIdentity = emailIdentityProm.promise;
+
+(async () => {
+  while (true) {
+    try {
+      let sender = await relay.sender.upsert({
+        identifier: 'metorial-ares',
+        name: 'Metorial Ares'
+      });
+
+      let emailIdentity = await relay.emailIdentity.upsert({
+        name: env.email.EMAIL_NAME,
+        email: env.email.EMAIL_ADDRESS,
+        senderId: sender.id
+      });
+
+      senderProm.resolve(sender);
+      emailIdentityProm.resolve(emailIdentity);
+
+      console.log(
+        `Registered email sender with relay: ${sender.id}, email identity: ${emailIdentity.id}`
+      );
+      return;
+    } catch (err) {
+      console.error('Failed to register app with Ares', err);
+    }
+
+    await delay(5000);
+  }
+})();
 
 export let createTemplateSender = <Data>(
   template: ITemplate<Data>,
