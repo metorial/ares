@@ -10,6 +10,9 @@ async function main() {
   await import('./instrument');
   await import('./endpoints');
   await import('./worker');
+
+  let { ensureAdminApp } = await import('./lib/adminApp');
+  await ensureAdminApp();
 }
 
 main().catch(err => {
