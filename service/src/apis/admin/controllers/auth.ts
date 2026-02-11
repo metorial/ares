@@ -32,18 +32,14 @@ export let authenticationController = publicApp.controller({
       });
 
       if (!admin) {
-        if (process.env.NODE_ENV === 'development') {
-          admin = await db.admin.create({
-            data: {
-              ...getId('admin'),
-              email: result.user.email,
-              name: result.user.name || result.user.email.split('@')[0]!,
-              password: ''
-            }
-          });
-        } else {
-          throw new ServiceError(unauthorizedError({ message: 'Unauthorized' }));
-        }
+        admin = await db.admin.create({
+          data: {
+            ...getId('admin'),
+            email: result.user.email,
+            name: result.user.name || result.user.email.split('@')[0]!,
+            password: ''
+          }
+        });
       }
 
       let session = await adminService.createAdminSession({
