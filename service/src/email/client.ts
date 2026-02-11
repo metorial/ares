@@ -5,7 +5,7 @@ import {
 } from '@metorial-services/relay-client';
 import { env } from '../env';
 
-export let relay = createRelayClient({
+export let relay: ReturnType<typeof createRelayClient> = createRelayClient({
   endpoint: env.service.RELAY_URL
 });
 

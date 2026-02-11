@@ -1,6 +1,6 @@
 import { createClient } from '@lowerdeck/rpc-client';
-import type { AresClient } from '../../../service/src/controllers';
+import type { InternalClient } from '../../../service/src/apis/internal';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 
-export let createAresClient = (o: ClientOpts) => createClient<AresClient>(o);
+export let createAresInternalClient = (o: ClientOpts) => createClient<InternalClient>(o);
