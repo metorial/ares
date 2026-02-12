@@ -65,5 +65,25 @@ export let userController = internalApp.controller({
       let user = await userService.getUser({ userId: input.userId });
       let emails = await userService.listUserEmails({ user });
       return emails.map(email => userEmailPresenter({ ...email, user }));
+    }),
+
+  setEmails: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string(),
+        emails: v.array(
+          v.object({
+            email: v.string(),
+            isPrimary: v.boolean(),
+            isVerified: v.boolean()
+          })
+        )
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let emails = await userService.setEmails({ user, emails: input.emails });
+      return emails.map(email => userEmailPresenter({ ...email, user }));
     })
 });
