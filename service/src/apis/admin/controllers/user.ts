@@ -33,32 +33,5 @@ export let userController = adminApp.controller({
     .do(async ({ input }) => {
       let user = await adminService.getUser({ userId: input.id });
       return await adminUserPresenter(user);
-    }),
-
-  impersonate: adminApp
-    .handler()
-    .input(
-      v.object({
-        id: v.string(),
-        reason: v.string(),
-        password: v.optional(v.string())
-      })
-    )
-    .do(async ({ input, admin }) => {
-      let user = await adminService.getUser({ userId: input.id });
-      let impersonation = await adminService.impersonateUser({
-        user,
-        reason: input.reason,
-        password: input.password,
-        admin
-      });
-
-      return {
-        object: 'ares#impersonation' as const,
-        id: impersonation.id,
-        clientSecret: impersonation.clientSecret,
-        expiresAt: impersonation.expiresAt,
-        createdAt: impersonation.createdAt
-      };
     })
 });

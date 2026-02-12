@@ -14,8 +14,7 @@ import type {
   AuthIntentStep,
   SsoTenant,
   SsoUserProfile,
-  User,
-  UserImpersonation
+  User
 } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { sendAuthCodeEmail } from '../email/authCode';
@@ -142,34 +141,6 @@ class AuthServiceImpl {
         type: 'auth_intent' as const,
         authIntent
       };
-    });
-  }
-
-  async authWithImpersonationToken(d: {
-    impersonationClientSecret: string;
-    context: Context;
-    redirectUrl: string;
-    device: AuthDevice;
-  }) {
-    let userImpersonation = await db.userImpersonation.findUnique({
-      where: { clientSecret: d.impersonationClientSecret },
-      include: { user: true }
-    });
-    if (!userImpersonation || !d.impersonationClientSecret) {
-      throw new ServiceError(
-        badRequestError({
-          message: 'Invalid impersonation token'
-        })
-      );
-    }
-
-    return await withTransaction(async tdb => {
-      return await this.createAuthAttempt({
-        user: userImpersonation.user,
-        device: d.device,
-        redirectUrl: d.redirectUrl,
-        userImpersonation
-      });
     });
   }
 
@@ -709,18 +680,15 @@ class AuthServiceImpl {
     device: AuthDevice;
     authIntent?: AuthIntent;
     redirectUrl: string;
-    userImpersonation?: UserImpersonation;
   }) {
-    if (!d.userImpersonation) {
-      let hasAccess = await accessGroupService.checkAppAccess({
-        user: d.user,
-        appOid: d.user.appOid
-      });
-      if (!hasAccess) {
-        throw new ServiceError(
-          forbiddenError({ message: 'You do not have access to this application' })
-        );
-      }
+    let hasAccess = await accessGroupService.checkAppAccess({
+      user: d.user,
+      appOid: d.user.appOid
+    });
+    if (!hasAccess) {
+      throw new ServiceError(
+        forbiddenError({ message: 'You do not have access to this application' })
+      );
     }
 
     return withTransaction(async tdb => {
@@ -737,7 +705,6 @@ class AuthServiceImpl {
 
           redirectUrl: d.redirectUrl,
           authIntentOid: d.authIntent?.oid ?? null,
-          userImpersonationId: d.userImpersonation?.id ?? null,
 
           ip: d.device.ip,
           ua: d.device.ua ?? ''

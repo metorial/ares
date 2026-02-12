@@ -34,7 +34,6 @@ class DeviceService {
         deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationOid: null,
         ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
@@ -55,7 +54,6 @@ class DeviceService {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         deviceOid: d.device.oid,
-        impersonationOid: null,
         appOid: d.app.oid
       },
       include: {
@@ -88,7 +86,6 @@ class DeviceService {
         deviceOid: d.device.oid,
         loggedOutAt: null,
         expiresAt: { gte: new Date() },
-        impersonationOid: null,
         ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
@@ -130,26 +127,18 @@ class DeviceService {
       });
       if (existingSession) return existingSession;
 
-      let impersonation = d.authAttempt.userImpersonationId
-        ? await db.userImpersonation.findUnique({
-            where: { id: d.authAttempt.userImpersonationId }
-          })
-        : null;
+      await db.user.updateMany({
+        where: { oid: user!.oid },
+        data: { lastLoginAt: new Date() }
+      });
 
-      if (!impersonation) {
-        await db.user.updateMany({
-          where: { oid: user!.oid },
-          data: { lastLoginAt: new Date() }
-        });
-
-        auditLogService.log({
-          appOid: user!.appOid,
-          type: 'login',
-          userOid: user!.oid,
-          ip: d.authAttempt.ip,
-          ua: d.authAttempt.ua
-        });
-      }
+      auditLogService.log({
+        appOid: user!.appOid,
+        type: 'login',
+        userOid: user!.oid,
+        ip: d.authAttempt.ip,
+        ua: d.authAttempt.ua
+      });
 
       return await db.authDeviceUserSession.create({
         data: {
@@ -157,8 +146,7 @@ class DeviceService {
           userOid: user!.oid,
           deviceOid: device!.oid,
           appOid: user!.appOid,
-          expiresAt: impersonation?.expiresAt ?? addWeeks(new Date(), 2),
-          impersonationOid: impersonation?.oid ?? null
+          expiresAt: addWeeks(new Date(), 2)
         }
       });
     });
@@ -230,7 +218,6 @@ class DeviceService {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
         userOid: d.user.oid,
-        impersonationOid: null
       },
       include: {
         device: true
@@ -271,8 +258,6 @@ class DeviceService {
     context: Context;
     session?: AuthDeviceUserSession;
   }) {
-    if (d.session?.impersonationOid) return false;
-
     let updateHistory = false;
     let updateDeviceLastActiveAt = false;
     let updateSessionLastActiveAt = false;

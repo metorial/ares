@@ -1,5 +1,5 @@
-import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Copy, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
+import { renderWithLoader } from '@metorial-io/data-hooks';
+import { Spacer } from '@metorial-io/ui';
 import { DataList, Heading, Table } from '@radix-ui/themes';
 import { useParams } from 'react-router-dom';
 import { userState } from '../../../state';
@@ -15,76 +15,6 @@ export let UserPage = () => {
       </Heading>
 
       <Spacer size={15} />
-
-      <Button
-        size="2"
-        onClick={() =>
-          showModal(({ dialogProps, close }) => {
-            let impersonate = useMutation(user.mutators.impersonate);
-
-            let form = useForm({
-              initialValues: {
-                reason: ''
-              },
-              onSubmit: async values => {
-                let [res] = await impersonate.mutate(values);
-                if (res) {
-                  close();
-                  let url = `${import.meta.env.VITE_AUTH_FRONTEND_URL ?? 'https://auth.metorial.com'}/internal#token=${res.clientSecret}`;
-
-                  showModal(({ dialogProps }) => (
-                    <Dialog.Wrapper {...dialogProps}>
-                      <Dialog.Title>Impersonation Successful</Dialog.Title>
-
-                      <p>
-                        Please copy the URL below and open it in a new private/incognito
-                        window.
-                      </p>
-
-                      <Spacer size={15} />
-
-                      <Copy value={url} />
-                    </Dialog.Wrapper>
-                  ));
-                }
-              },
-              schema: yup =>
-                yup.object({
-                  reason: yup.string().required()
-                })
-            });
-
-            return (
-              <Dialog.Wrapper {...dialogProps}>
-                <Dialog.Title>Impersonate User</Dialog.Title>
-
-                <form {...dialogProps} onSubmit={form.handleSubmit}>
-                  <Input
-                    label="Reason"
-                    as="textarea"
-                    minRows={5}
-                    {...form.getFieldProps('reason')}
-                  />
-                  <form.RenderError field="reason" />
-
-                  <Spacer size={15} />
-
-                  <Button
-                    type="submit"
-                    loading={impersonate.isLoading}
-                    success={impersonate.isSuccess}
-                  >
-                    Impersonate
-                  </Button>
-                  <impersonate.RenderError />
-                </form>
-              </Dialog.Wrapper>
-            );
-          })
-        }
-      >
-        Impersonate
-      </Button>
 
       <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         User Profile

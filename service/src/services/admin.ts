@@ -1,5 +1,4 @@
 import {
-  badRequestError,
   notFoundError,
   ServiceError,
   unauthorizedError
@@ -8,7 +7,7 @@ import { generatePlainId } from '@lowerdeck/id';
 import { Paginator } from '@lowerdeck/pagination';
 import { Service } from '@lowerdeck/service';
 import { addHours } from 'date-fns';
-import type { Admin, App, User } from '../../prisma/generated/client';
+import type { Admin, App } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
@@ -63,32 +62,6 @@ class AdminServiceImpl {
     });
     if (!user) throw new ServiceError(notFoundError('user', d.userId));
     return user;
-  }
-
-  async impersonateUser(d: { user: User; password?: string; admin: Admin; reason: string }) {
-    if (process.env.NODE_ENV != 'development') {
-      if (d.admin.password.length) {
-        if (!d.password) {
-          throw new ServiceError(badRequestError({ message: 'Password is required' }));
-        }
-
-        let valid = await Bun.password.verify(d.password!, d.admin.password);
-        if (!valid) {
-          throw new ServiceError(badRequestError({ message: 'Invalid password' }));
-        }
-      }
-    }
-
-    return await db.userImpersonation.create({
-      data: {
-        ...getId('userImpersonation'),
-        clientSecret: generatePlainId(50),
-        userOid: d.user.oid,
-        adminOid: d.admin.oid,
-        reason: d.reason,
-        expiresAt: addHours(new Date(), 1)
-      }
-    });
   }
 
   async listAdmins() {

@@ -36,17 +36,7 @@ export let userState = createLoader({
   fetch: (d: { id: string }) => {
     return redirectToAuthIfNotAuthenticated(() => adminClient.user.get({ id: d.id }));
   },
-  mutators: {
-    impersonate: (d: { reason: string; password?: string }, { output }) => {
-      return redirectToAuthIfNotAuthenticated(() =>
-        adminClient.user.impersonate({
-          id: output!.id,
-          reason: d.reason,
-          password: d.password
-        })
-      );
-    }
-  }
+  mutators: {}
 });
 
 export let adminsState = createLoader({

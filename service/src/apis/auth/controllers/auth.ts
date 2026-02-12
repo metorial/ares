@@ -69,12 +69,6 @@ export let authenticationController = publicApp.controller({
           clientId: v.string(),
           userOrSessionId: v.string(),
           redirectUrl: v.string()
-        }),
-        v.object({
-          type: v.literal('internal'),
-          clientId: v.string(),
-          token: v.string(),
-          redirectUrl: v.string()
         })
       ])
     )
@@ -156,23 +150,6 @@ export let authenticationController = publicApp.controller({
             ssoTenantId: input.ssoTenantId,
             redirectUrl: input.redirectUrl
           })}`
-        };
-      }
-
-      if (input.type == 'internal') {
-        let res = await authService.authWithImpersonationToken({
-          context: {
-            ip: context.ip,
-            ua: context.ua ?? ''
-          },
-          device,
-          impersonationClientSecret: input.token,
-          redirectUrl: input.redirectUrl
-        });
-
-        return {
-          type: 'auth_attempt' as const,
-          authAttempt: authAttemptPresenter(res)
         };
       }
 

@@ -93,15 +93,13 @@ class SessionService {
       include: { device: true, user: true }
     });
 
-    if (!d.session.impersonationOid) {
-      auditLogService.log({
-        appOid: res.user.appOid,
-        type: 'logout',
-        userOid: res.user.oid,
-        ip: res.device.lastIp,
-        ua: res.device.lastUa
-      });
-    }
+    auditLogService.log({
+      appOid: res.user.appOid,
+      type: 'logout',
+      userOid: res.user.oid,
+      ip: res.device.lastIp,
+      ua: res.device.lastUa
+    });
 
     await findAuthSessionCached.clear({
       sessionId: d.session.id
@@ -125,15 +123,6 @@ class SessionService {
     if (!session) throw new ServiceError(notFoundError('session', d.sessionId));
 
     return session;
-  }
-
-  async getImpersonationSession(d: { session: AuthDeviceUserSession }) {
-    let ses = await db.authDeviceUserSession.findUnique({
-      where: { id: d.session.id },
-      include: { impersonation: { include: { admin: true } } }
-    });
-
-    return ses?.impersonation;
   }
 
   async findAdminForSession(d: { session: AuthDeviceUserSession & { user: User } }) {

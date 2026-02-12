@@ -23,12 +23,5 @@ export let cleanupCron = createCron(
     await db.authBlock.deleteMany({
       where: { blockedAt: { lt: oneWeekAgo } }
     });
-
-    await db.authDeviceUserSession.deleteMany({
-      where: {
-        expiresAt: { lt: now },
-        impersonationOid: { not: null }
-      }
-    });
   }
 );

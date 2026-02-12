@@ -139,9 +139,6 @@ model AuthAttempt {
   authIntentOid BigInt?
   authIntent    AuthIntent? @relation(fields: [authIntentOid], references: [oid], onDelete: SetNull)
 
-  userImpersonationId String?
-  userImpersonation   UserImpersonation? @relation(fields: [userImpersonationId], references: [id], onDelete: SetNull)
-
   createdAt DateTime @default(now())
 }
 

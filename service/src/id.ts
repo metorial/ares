@@ -20,7 +20,6 @@ export let ID = createIdGenerator({
   userEmail: idType.sorted('ume_'),
   userEmailVerification: idType.sorted('uev_'),
   userIdentity: idType.sorted('uid_'),
-  userImpersonation: idType.sorted('uim_'),
   userTermsAgreement: idType.sorted('utag_'),
   userTermsType: idType.sorted('utt_'),
 

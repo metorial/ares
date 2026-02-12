@@ -45,9 +45,6 @@ model AuthDeviceUserSession {
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid])
 
-  impersonationOid BigInt?
-  impersonation    UserImpersonation? @relation(fields: [impersonationOid], references: [oid], onDelete: Cascade)
-
   createdAt    DateTime  @default(now())
   loggedOutAt  DateTime?
   lastActiveAt DateTime?

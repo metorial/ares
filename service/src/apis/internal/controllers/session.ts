@@ -21,7 +21,6 @@ export let sessionController = internalApp.controller({
         id: session.id,
         userId: session.user.id,
         deviceId: session.device.id,
-        impersonationOid: session.impersonationOid,
         loggedOutAt: session.loggedOutAt,
         expiresAt: session.expiresAt,
         createdAt: session.createdAt
