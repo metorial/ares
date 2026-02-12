@@ -62,8 +62,8 @@ let Box = styled.div`
     max-height: unset;
     padding: 20px;
     border-radius: 10px;
-    max-width: 70dvw;
     max-height: 70dvh;
+    max-width: calc(100dvw - 40px);
     width: 600px;
     height: 700px;
   }
@@ -74,6 +74,7 @@ let Box = styled.div`
     left: 0;
     height: 100%;
     width: 600px;
+    max-width: 70dvw;
   }
 
   @media (max-width: 1000px) {

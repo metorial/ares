@@ -1,5 +1,5 @@
 import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
-import { Logo } from '@metorial-io/ui';
+import { Logo, ModalRoot, Toaster } from '@metorial-io/ui';
 import { Theme } from '@radix-ui/themes';
 import { RiApps2Line, RiFileListLine, RiGroupLine, RiSettings3Line, RiShieldUserLine, RiUserLine } from '@remixicon/react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -51,6 +51,8 @@ export let Layout = () => {
           </ExtraHeaderLayout>
         </SidebarPane>
       </LargePaneLayout>
+      <Toaster />
+      <ModalRoot />
     </Theme>
   );
 };
