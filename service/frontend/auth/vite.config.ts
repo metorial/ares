@@ -26,6 +26,14 @@ export default defineConfig({
   },
 
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/themes', '@remixicon/react', 'styled-components']
+        }
+      }
+    }
   }
 });

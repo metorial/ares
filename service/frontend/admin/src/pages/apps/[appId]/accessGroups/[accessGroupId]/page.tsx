@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Heading, Select, Table } from '@radix-ui/themes';
+import { Button, Dialog, Input, Select, showModal, Spacer } from '@metorial-io/ui';
+import { Heading, Table } from '@radix-ui/themes';
 import { Link, useParams } from 'react-router-dom';
 import { accessGroupState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
@@ -85,31 +85,12 @@ export let AccessGroupPage = () => {
                   <Dialog.Title>Add Rule</Dialog.Title>
 
                   <form onSubmit={form.handleSubmit}>
-                    <div style={{ marginBottom: 10 }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          marginBottom: 4,
-                          fontSize: 14,
-                          fontWeight: 500
-                        }}
-                      >
-                        Type
-                      </label>
-                      <Select.Root
-                        value={form.values.type}
-                        onValueChange={val => form.setFieldValue('type', val)}
-                      >
-                        <Select.Trigger style={{ width: '100%' }} />
-                        <Select.Content>
-                          {RULE_TYPES.map(rt => (
-                            <Select.Item key={rt.value} value={rt.value}>
-                              {rt.label}
-                            </Select.Item>
-                          ))}
-                        </Select.Content>
-                      </Select.Root>
-                    </div>
+                    <Select
+                      label="Type"
+                      value={form.values.type}
+                      onChange={val => form.setFieldValue('type', val)}
+                      items={RULE_TYPES.map(rt => ({ id: rt.value, label: rt.label }))}
+                    />
 
                     <Input label="Value" {...form.getFieldProps('value')} />
                     <form.RenderError field="value" />
@@ -233,31 +214,12 @@ export let AccessGroupPage = () => {
                     <p style={{ color: '#888' }}>Already assigned to all available targets.</p>
                   ) : (
                     <form onSubmit={form.handleSubmit}>
-                      <div style={{ marginBottom: 10 }}>
-                        <label
-                          style={{
-                            display: 'block',
-                            marginBottom: 4,
-                            fontSize: 14,
-                            fontWeight: 500
-                          }}
-                        >
-                          Target
-                        </label>
-                        <Select.Root
-                          value={form.values.target}
-                          onValueChange={val => form.setFieldValue('target', val)}
-                        >
-                          <Select.Trigger style={{ width: '100%' }} />
-                          <Select.Content>
-                            {targets.map(t => (
-                              <Select.Item key={t.value} value={t.value}>
-                                {t.label}
-                              </Select.Item>
-                            ))}
-                          </Select.Content>
-                        </Select.Root>
-                      </div>
+                      <Select
+                        label="Target"
+                        value={form.values.target}
+                        onChange={val => form.setFieldValue('target', val)}
+                        items={targets.map(t => ({ id: t.value, label: t.label }))}
+                      />
 
                       <Button type="submit" loading={isLoading} success={isSuccess}>
                         Assign

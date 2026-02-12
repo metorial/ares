@@ -26,6 +26,7 @@ import { parseEmail } from '../lib/parseEmail';
 import type { OAuthCredentials } from '../lib/socials';
 import { socials } from '../lib/socials';
 import { turnstileVerifier } from '../lib/turnstile';
+import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
@@ -710,6 +711,18 @@ class AuthServiceImpl {
     redirectUrl: string;
     userImpersonation?: UserImpersonation;
   }) {
+    if (!d.userImpersonation) {
+      let hasAccess = await accessGroupService.checkAppAccess({
+        user: d.user,
+        appOid: d.user.appOid
+      });
+      if (!hasAccess) {
+        throw new ServiceError(
+          forbiddenError({ message: 'You do not have access to this application' })
+        );
+      }
+    }
+
     return withTransaction(async tdb => {
       return await tdb.authAttempt.create({
         data: {

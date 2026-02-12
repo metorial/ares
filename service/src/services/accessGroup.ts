@@ -116,9 +116,11 @@ class AccessGroupServiceImpl {
     });
   }
 
-  async checkAppAccess(d: { user: User; app: App }): Promise<boolean> {
+  async checkAppAccess(d: { user: User; app: App } | { user: User; appOid: bigint }): Promise<boolean> {
+    let appOid = 'app' in d ? d.app.oid : d.appOid;
+
     let assignments = await db.accessGroupAssignment.findMany({
-      where: { appOid: d.app.oid },
+      where: { appOid },
       include: { accessGroup: { include: { rules: true } } }
     });
 
@@ -128,7 +130,7 @@ class AccessGroupServiceImpl {
       let matched = await this._checkRules({
         user: d.user,
         rules: assignment.accessGroup.rules,
-        appOid: d.app.oid
+        appOid
       });
       if (matched) return true;
     }
