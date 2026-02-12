@@ -11,10 +11,7 @@ export type GetImageFieldsParams = {
   image: EntityImage | null;
 };
 
-export let getImageFieldsDefaultImpl = async (entity: GetImageFieldsParams) => {
-  if (entity.image?.type == 'enterprise_file')
-    throw new Error('Enterprise file images are not supported in this context.');
-
+export let getImageFields = async (entity: GetImageFieldsParams) => {
   if (entity.image?.type == 'file') {
     return {
       imageUrl: entity.image.url
@@ -33,16 +30,6 @@ export let getImageFieldsDefaultImpl = async (entity: GetImageFieldsParams) => {
   return {
     imageUrl: url.toString()
   };
-};
-
-let impl = { current: getImageFieldsDefaultImpl };
-
-export let setGetImageFieldsImpl = (newImpl: typeof getImageFieldsDefaultImpl) => {
-  impl.current = newImpl;
-};
-
-export let getImageFields = (entity: GetImageFieldsParams) => {
-  return impl.current(entity);
 };
 
 export let getImageUrl = async (entity: {
