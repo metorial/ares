@@ -1,7 +1,12 @@
 import { Paginator } from '@lowerdeck/pagination';
 import { v } from '@lowerdeck/validation';
 import { adminService } from '../../../services/admin';
-import { userPresenter as authUserPresenter } from '../../auth/presenters';
+import { userService } from '../../../services/user';
+import {
+  userPresenter as authUserPresenter,
+  userEmailPresenter,
+  userIdentityPresenter
+} from '../../auth/presenters';
 import { internalApp } from '../_app';
 
 export let userController = internalApp.controller({
@@ -32,5 +37,33 @@ export let userController = internalApp.controller({
     .do(async ({ input }) => {
       let user = await adminService.getUser({ userId: input.id });
       return await authUserPresenter(user);
+    }),
+
+  listIdentities: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let identities = await userService.listUserProfile({ user });
+      return identities.map(identity =>
+        userIdentityPresenter({ ...identity, user })
+      );
+    }),
+
+  listEmails: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let emails = await userService.listUserEmails({ user });
+      return emails.map(email => userEmailPresenter({ ...email, user }));
     })
 });

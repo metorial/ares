@@ -13,7 +13,11 @@ export let db = new PrismaClient({ adapter });
 
 declare global {
   namespace PrismaJson {
-    type Headers = [string, string][];
+    type EntityImage =
+      | { type: 'file'; fileId: string; fileLinkId: string; url: string }
+      | { type: 'enterprise_file'; fileId: string }
+      | { type: 'url'; url: string }
+      | { type: 'default' };
   }
 }
 

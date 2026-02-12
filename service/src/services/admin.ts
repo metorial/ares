@@ -43,7 +43,8 @@ class AdminServiceImpl {
                     { lastName: { contains: d.search } }
                   ]
                 : undefined
-            }
+            },
+            include: { userEmails: true }
           })
       )
     );

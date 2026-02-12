@@ -21,6 +21,8 @@ export let ID = createIdGenerator({
   userEmailVerification: idType.sorted('uev_'),
   userIdentity: idType.sorted('uid_'),
   userImpersonation: idType.sorted('uim_'),
+  userTermsAgreement: idType.sorted('utag_'),
+  userTermsType: idType.sorted('utt_'),
 
   admin: idType.sorted('adm_'),
   adminSession: idType.sorted('asm_'),
