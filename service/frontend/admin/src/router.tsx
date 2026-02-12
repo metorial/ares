@@ -40,13 +40,7 @@ let router = createBrowserRouter([
   },
   {
     path: '/',
-    element: (
-      <>
-        <Layout />
-        <Toaster />
-        <ModalRoot />
-      </>
-    ),
+    element: <Layout />,
     errorElement: <RouterErrorPage />,
     children: [
       { path: '', element: <Navigate to="/users" replace /> },
