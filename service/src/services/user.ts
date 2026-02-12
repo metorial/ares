@@ -131,7 +131,10 @@ class UserServiceImpl {
         id: 'asc'
       },
       include: {
-        provider: true
+        provider: {
+          include: { oauthProvider: true, ssoTenant: true }
+        },
+        ssoUserProfile: { include: { user: true } }
       }
     });
   }

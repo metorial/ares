@@ -12,6 +12,8 @@ import type {
   AuthDevice,
   AuthIntent,
   AuthIntentStep,
+  SsoTenant,
+  SsoUserProfile,
   User,
   UserImpersonation
 } from '../../prisma/generated/client';
@@ -243,13 +245,13 @@ class AuthServiceImpl {
     }
 
     let identityProvider = await db.userIdentityProvider.findFirst({
-      where: { identifier: d.provider }
+      where: { oauthProviderOid: oauthProvider.oid }
     });
     if (!identityProvider) {
       identityProvider = await db.userIdentityProvider.create({
         data: {
           ...getId('userIdentityProvider'),
-          identifier: d.provider,
+          oauthProviderOid: oauthProvider.oid,
           name: d.provider.charAt(0).toUpperCase() + d.provider.slice(1)
         }
       });
@@ -353,22 +355,22 @@ class AuthServiceImpl {
     ssoUser: { email: string; firstName: string; lastName: string };
     ssoConnectionId: string;
     ssoUid: string;
+    ssoTenant: SsoTenant;
+    ssoUserProfile: SsoUserProfile;
     context: Context;
     redirectUrl: string;
     device: AuthDevice;
     app: App;
   }) {
-    let providerIdentifier = `sso.${d.ssoConnectionId}`;
-
     let identityProvider = await db.userIdentityProvider.findFirst({
-      where: { identifier: providerIdentifier }
+      where: { ssoTenantOid: d.ssoTenant.oid }
     });
     if (!identityProvider) {
       identityProvider = await db.userIdentityProvider.create({
         data: {
           ...getId('userIdentityProvider'),
-          identifier: providerIdentifier,
-          name: `SSO ${d.ssoConnectionId}`
+          ssoTenantOid: d.ssoTenant.oid,
+          name: d.ssoTenant.name
         }
       });
     }
@@ -387,7 +389,8 @@ class AuthServiceImpl {
           email: d.ssoUser.email,
           firstName: d.ssoUser.firstName,
           lastName: d.ssoUser.lastName,
-          name: `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim()
+          name: `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim(),
+          ssoUserProfileOid: d.ssoUserProfile.oid
         }
       });
     } else {
@@ -401,6 +404,7 @@ class AuthServiceImpl {
           name: `${d.ssoUser.firstName} ${d.ssoUser.lastName}`.trim(),
           photoUrl: null,
           providerOid: identityProvider.oid,
+          ssoUserProfileOid: d.ssoUserProfile.oid,
           userOid: null
         }
       });
@@ -814,14 +818,18 @@ class AuthServiceImpl {
     });
 
     let [user, session] = await Promise.all([
-      db.user.findUnique({ where: { oid: authAttempt.userOid } }),
+      db.user.findUnique({
+        where: { oid: authAttempt.userOid },
+        include: { userEmails: true }
+      }),
       db.authDeviceUserSession.findFirst({
         where: {
           deviceOid: authAttempt.deviceOid,
           userOid: authAttempt.userOid,
           loggedOutAt: null,
           expiresAt: { gte: new Date() }
-        }
+        },
+        include: { device: true }
       })
     ]);
 
@@ -830,19 +838,8 @@ class AuthServiceImpl {
     }
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      },
-      session: {
-        id: session.id,
-        expiresAt: session.expiresAt
-      }
+      user,
+      session
     };
   }
 }
