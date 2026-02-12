@@ -20,7 +20,7 @@ class DeviceService {
         deviceOid: d.device.oid
       },
       include: {
-        user: true
+        user: { include: { userEmails: true } }
       },
       orderBy: {
         id: 'asc'
@@ -38,7 +38,7 @@ class DeviceService {
         ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
-        user: true
+        user: { include: { userEmails: true } }
       },
       orderBy: {
         id: 'asc'
@@ -59,7 +59,7 @@ class DeviceService {
         appOid: d.app.oid
       },
       include: {
-        user: true
+        user: { include: { userEmails: true } }
       },
       orderBy: {
         id: 'asc'
@@ -92,7 +92,7 @@ class DeviceService {
         ...(d.app ? { appOid: d.app.oid } : {})
       },
       include: {
-        user: true
+        user: { include: { userEmails: true } }
       }
     });
   }

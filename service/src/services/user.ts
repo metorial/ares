@@ -7,8 +7,9 @@ import {
 } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
-import type { App, User, UserEmail } from '../../prisma/generated/client';
+import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
 import { addAfterTransactionHook, db, withTransaction } from '../db';
+import { terms } from '../definitions';
 import { sendEmailVerification } from '../email/emailVerification';
 import { userEvents } from '../events/user';
 import { getId } from '../id';
@@ -80,6 +81,12 @@ class UserServiceImpl {
 
             image: { type: 'default' }
           }
+        });
+
+        await this.createTermsAgreement({
+          user,
+          context: d.context,
+          terms: [terms.privacyPolicy, terms.termsOfService]
         });
 
         await this.createEmail({
@@ -346,7 +353,36 @@ class UserServiceImpl {
     });
   }
 
-  // Terms agreement removed - implement if needed with proper types
+  async createTermsAgreement(i: {
+    user: User;
+    terms: (UserTermsType | Promise<UserTermsType>)[];
+    context: Context;
+  }) {
+    return withTransaction(async db => {
+      for (let termProm of i.terms) {
+        let term = await termProm;
+
+        await db.userTermsAgreement.create({
+          data: {
+            ...getId('userTermsAgreement'),
+            userOid: i.user.oid,
+            typeOid: term.oid,
+            ip: i.context.ip,
+            ua: i.context.ua
+          }
+        });
+
+        await auditLogService.log({
+          appOid: i.user.appOid,
+          type: 'user.terms_agreement.created',
+          userOid: i.user.oid,
+          ip: i.context.ip,
+          ua: i.context.ua,
+          metadata: { terms: term.identifier, version: term.version }
+        });
+      }
+    });
+  }
 
   async updateUser(d: {
     user: User;
