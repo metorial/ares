@@ -170,7 +170,7 @@ export let authHooksApp = createHono()
       throw new ServiceError(badRequestError({ message: 'Missing tenant_id or auth_id' }));
     }
 
-    let { connection, userProfile } = await ssoService.completeAuth({
+    let { tenant, connection, userProfile } = await ssoService.completeAuth({
       authId
     });
 
@@ -203,6 +203,8 @@ export let authHooksApp = createHono()
       },
       ssoConnectionId: connection.id,
       ssoUid: userProfile.uid,
+      ssoTenant: tenant,
+      ssoUserProfile: userProfile,
       context: { ip, ua },
       redirectUrl: stateData.redirectUrl,
       device,

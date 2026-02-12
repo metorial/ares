@@ -2,7 +2,9 @@ import { notFoundError, ServiceError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { db } from '../../../db';
 import { authService } from '../../../services/auth';
+import { sessionPresenter } from '../../auth/presenters';
 import { internalApp } from '../_app';
+import { userPresenter } from '../presenters';
 
 let resolveApp = async (clientId: string) => {
   let app = await db.app.findFirst({
@@ -25,9 +27,14 @@ export let oauthController = internalApp.controller({
     )
     .do(async ({ input }) => {
       let app = await resolveApp(input.clientId);
-      return await authService.exchangeAuthorizationCode({
+      let res = await authService.exchangeAuthorizationCode({
         app,
         authorizationCode: input.authorizationCode
       });
+
+      return {
+        user: userPresenter(res.user),
+        session: sessionPresenter(res.session)
+      };
     })
 });

@@ -29,6 +29,8 @@ model SsoTenant {
   users            SsoUser[]
   userProfiles     SsoUserProfile[]
   auths            SsoAuth[]
+
+  identityProvider UserIdentityProvider?
 }
 
 enum SsoConnectionProviderType {
@@ -140,6 +142,8 @@ model SsoUserProfile {
   updatedAt DateTime @default(now()) @updatedAt
 
   auths SsoAuth[]
+
+  userIdentities UserIdentity[]
 }
 
 enum SsoAuthStatus {
