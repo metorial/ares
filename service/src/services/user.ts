@@ -5,12 +5,10 @@ import {
   preconditionFailedError,
   ServiceError
 } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
 import { addAfterTransactionHook, db, withTransaction } from '../db';
 import { terms } from '../definitions';
-import { sendEmailVerification } from '../email/emailVerification';
 import { userEvents } from '../events/user';
 import { getId } from '../id';
 import type { Context } from '../lib/context';
@@ -206,10 +204,6 @@ class UserServiceImpl {
         }
       });
 
-      if (!email.verifiedAt) {
-        await this.sendUserEmailVerification({ email });
-      }
-
       if (!d.isForNewUser) {
         auditLogService.log({
           appOid: d.app.oid,
@@ -266,24 +260,6 @@ class UserServiceImpl {
       });
 
       return email;
-    });
-  }
-
-  async sendUserEmailVerification(d: { email: UserEmail }) {
-    return withTransaction(async tdb => {
-      let verification = await tdb.userEmailVerification.create({
-        data: {
-          ...getId('userEmailVerification'),
-          key: generatePlainId(30),
-          userOid: d.email.userOid,
-          userEmailOid: d.email.oid
-        }
-      });
-
-      await sendEmailVerification.send({
-        to: [d.email.email],
-        data: { key: verification.key, userEmailId: d.email.id }
-      });
     });
   }
 

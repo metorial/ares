@@ -49,9 +49,7 @@ export let userController = internalApp.controller({
     .do(async ({ input }) => {
       let user = await userService.getUser({ userId: input.userId });
       let identities = await userService.listUserProfile({ user });
-      return identities.map(identity =>
-        userIdentityPresenter({ ...identity, user })
-      );
+      return identities.map(identity => userIdentityPresenter({ ...identity, user }));
     }),
 
   listEmails: internalApp
