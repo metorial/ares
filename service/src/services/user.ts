@@ -5,12 +5,10 @@ import {
   preconditionFailedError,
   ServiceError
 } from '@lowerdeck/error';
-import { generatePlainId } from '@lowerdeck/id';
 import { Service } from '@lowerdeck/service';
 import type { App, User, UserEmail, UserTermsType } from '../../prisma/generated/client';
 import { addAfterTransactionHook, db, withTransaction } from '../db';
 import { terms } from '../definitions';
-import { sendEmailVerification } from '../email/emailVerification';
 import { userEvents } from '../events/user';
 import { getId } from '../id';
 import type { Context } from '../lib/context';
@@ -206,10 +204,6 @@ class UserServiceImpl {
         }
       });
 
-      if (!email.verifiedAt) {
-        await this.sendUserEmailVerification({ email });
-      }
-
       if (!d.isForNewUser) {
         auditLogService.log({
           appOid: d.app.oid,
@@ -266,24 +260,6 @@ class UserServiceImpl {
       });
 
       return email;
-    });
-  }
-
-  async sendUserEmailVerification(d: { email: UserEmail }) {
-    return withTransaction(async tdb => {
-      let verification = await tdb.userEmailVerification.create({
-        data: {
-          ...getId('userEmailVerification'),
-          key: generatePlainId(30),
-          userOid: d.email.userOid,
-          userEmailOid: d.email.oid
-        }
-      });
-
-      await sendEmailVerification.send({
-        to: [d.email.email],
-        data: { key: verification.key, userEmailId: d.email.id }
-      });
     });
   }
 
@@ -466,6 +442,82 @@ class UserServiceImpl {
       // Get rid of auth sessions to avoid any potential issues (e.g., logging in with the deleted user)
       await tdb.authIntent.deleteMany({ where: { userOid: d.user.oid } });
       await tdb.authAttempt.deleteMany({ where: { userOid: d.user.oid } });
+    });
+  }
+
+  async setEmails(d: {
+    user: User;
+    emails: { email: string; isPrimary: boolean; isVerified: boolean }[];
+  }) {
+    return withTransaction(async tdb => {
+      let existing = await tdb.userEmail.findMany({
+        where: { userOid: d.user.oid }
+      });
+
+      let existingByEmail = new Map(existing.map(e => [e.email, e]));
+      let incomingEmails = new Set(d.emails.map(e => parseEmail(e.email).email));
+
+      // Delete emails that are no longer in the input
+      for (let ex of existing) {
+        if (!incomingEmails.has(ex.email)) {
+          await tdb.userEmail.delete({ where: { oid: ex.oid } });
+        }
+      }
+
+      let results: UserEmail[] = [];
+
+      for (let input of d.emails) {
+        let parsed = parseEmail(input.email);
+        let ex = existingByEmail.get(parsed.email);
+
+        if (ex) {
+          // Update existing email
+          let updated = await tdb.userEmail.update({
+            where: { oid: ex.oid },
+            data: {
+              isPrimary: input.isPrimary,
+              verifiedAt: input.isVerified ? (ex.verifiedAt ?? new Date()) : null
+            }
+          });
+          results.push(updated);
+        } else {
+          // Create new email
+          let domain = await tdb.emailDomain.upsert({
+            where: { domain: parsed.domain },
+            create: {
+              ...getId('emailDomain'),
+              domain: parsed.domain,
+              appOid: d.user.appOid
+            },
+            update: {}
+          });
+
+          let created = await tdb.userEmail.create({
+            data: {
+              ...getId('userEmail'),
+              domainOid: domain.oid,
+              appOid: d.user.appOid,
+              email: parsed.email,
+              normalizedEmail: parsed.normalizedEmail,
+              isPrimary: input.isPrimary,
+              verifiedAt: input.isVerified ? new Date() : null,
+              userOid: d.user.oid
+            }
+          });
+          results.push(created);
+        }
+      }
+
+      // Sync the user's primary email field
+      let primary = results.find(e => e.isPrimary);
+      if (primary && primary.email !== d.user.email) {
+        await tdb.user.update({
+          where: { oid: d.user.oid },
+          data: { email: primary.email }
+        });
+      }
+
+      return results;
     });
   }
 

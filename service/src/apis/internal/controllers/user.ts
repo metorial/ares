@@ -49,9 +49,7 @@ export let userController = internalApp.controller({
     .do(async ({ input }) => {
       let user = await userService.getUser({ userId: input.userId });
       let identities = await userService.listUserProfile({ user });
-      return identities.map(identity =>
-        userIdentityPresenter({ ...identity, user })
-      );
+      return identities.map(identity => userIdentityPresenter({ ...identity, user }));
     }),
 
   listEmails: internalApp
@@ -64,6 +62,26 @@ export let userController = internalApp.controller({
     .do(async ({ input }) => {
       let user = await userService.getUser({ userId: input.userId });
       let emails = await userService.listUserEmails({ user });
+      return emails.map(email => userEmailPresenter({ ...email, user }));
+    }),
+
+  setEmails: internalApp
+    .handler()
+    .input(
+      v.object({
+        userId: v.string(),
+        emails: v.array(
+          v.object({
+            email: v.string(),
+            isPrimary: v.boolean(),
+            isVerified: v.boolean()
+          })
+        )
+      })
+    )
+    .do(async ({ input }) => {
+      let user = await userService.getUser({ userId: input.userId });
+      let emails = await userService.setEmails({ user, emails: input.emails });
       return emails.map(email => userEmailPresenter({ ...email, user }));
     })
 });
