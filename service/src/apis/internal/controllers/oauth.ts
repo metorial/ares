@@ -33,8 +33,8 @@ export let oauthController = internalApp.controller({
       });
 
       return {
-        user: userPresenter(res.user),
-        session: sessionPresenter(res.session)
+        user: await userPresenter(res.user),
+        session: await sessionPresenter(res.session)
       };
     })
 });
