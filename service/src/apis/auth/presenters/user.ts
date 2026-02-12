@@ -22,5 +22,6 @@ export let userPresenter = async (user: User & { userEmails: UserEmail[] }) => (
 
   emails: user.userEmails.map(e => userEmailPresenter({ ...e, user })),
 
-  imageUrl: await getImageUrl(user)
+  imageUrl: await getImageUrl(user),
+  image: user.image
 });
