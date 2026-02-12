@@ -4,8 +4,8 @@ import { env } from '../../../env';
 import { deviceService } from '../../../services/device';
 import { publicApp } from '../_app';
 
-export const DEVICE_TOKEN_COOKIE_NAME = 'metorial_device_token';
-export const SESSION_ID_COOKIE_NAME = 'metorial_session_id';
+export const DEVICE_TOKEN_COOKIE_NAME = 'metorial_ares_device_token';
+export const SESSION_ID_COOKIE_NAME = 'metorial_ares_session_id';
 
 let isProd = process.env.NODE_ENV === 'production';
 
