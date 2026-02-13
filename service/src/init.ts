@@ -25,7 +25,12 @@ if (!process.env.SSO_DATABASE_URL) {
     );
   }
 
-  process.env.SSO_DATABASE_URL = `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}?sslmode=${process.env.SSO_DATABASE_SSL_MODE ?? 'require'}`;
+  let ssoSslMode = process.env.SSO_DATABASE_SSL_MODE ?? 'require';
+  let ssoSslAccept = process.env.SSO_DATABASE_SSL_ACCEPT ?? 'accept_invalid_certs';
+  process.env.SSO_DATABASE_URL =
+    `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}` +
+    `@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}` +
+    `?sslmode=${ssoSslMode}&sslaccept=${ssoSslAccept}`;
 }
 
 if (!process.env.REDIS_URL) {
@@ -39,7 +44,7 @@ if (!process.env.REDIS_URL) {
 } else {
   // Ensure Redis URL includes an explicit DB index.
   try {
-    const url = new URL(process.env.REDIS_URL);
+    let url = new URL(process.env.REDIS_URL);
     if (url.pathname === '' || url.pathname === '/') {
       url.pathname = '/0';
       process.env.REDIS_URL = url.toString();
