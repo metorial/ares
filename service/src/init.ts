@@ -25,7 +25,7 @@ if (!process.env.SSO_DATABASE_URL) {
     );
   }
 
-  process.env.SSO_DATABASE_URL = `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}?schema=public&sslmode=no-verify`;
+  process.env.SSO_DATABASE_URL = `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}?schema=public&sslmode=${process.env.SSO_DATABASE_SSL_MODE ?? 'require'}`;
 }
 
 if (!process.env.REDIS_URL) {
