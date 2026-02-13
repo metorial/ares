@@ -17,6 +17,23 @@ let ensureDatabase = async (url: string) => {
 
 await ensureDatabase(env.service.SSO_DATABASE_URL);
 
+console.log(env.service.SSO_DATABASE_URL);
+console.log(env.service.SSO_DATABASE_SSL);
+console.log(env.service.SSO_DATABASE_SSL);
+
+console.log({
+  engine: 'sql',
+  type: 'postgres',
+  url: env.service.SSO_DATABASE_URL,
+  ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
+});
+
+console.log({
+  engine: 'sql',
+  type: 'postgres',
+  ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
+});
+
 let ret = await jack({
   noAnalytics: true,
   externalUrl: env.service.ARES_SSO_URL,
