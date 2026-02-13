@@ -26,7 +26,8 @@ let ret = await jack({
   db: {
     engine: 'sql',
     type: 'postgres',
-    url: env.service.SSO_DATABASE_URL
+    url: env.service.SSO_DATABASE_URL,
+    ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
   },
   idpEnabled: true
 });

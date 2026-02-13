@@ -25,12 +25,7 @@ if (!process.env.SSO_DATABASE_URL) {
     );
   }
 
-  let ssoSslMode = process.env.SSO_DATABASE_SSL_MODE ?? 'require';
-  let ssoSslAccept = process.env.SSO_DATABASE_SSL_ACCEPT ?? 'accept_invalid_certs';
-  process.env.SSO_DATABASE_URL =
-    `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}` +
-    `@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}` +
-    `?sslmode=${ssoSslMode}&sslaccept=${ssoSslAccept}`;
+  process.env.SSO_DATABASE_URL = `postgres://${process.env.SSO_DATABASE_USERNAME}:${process.env.SSO_DATABASE_PASSWORD}@${process.env.SSO_DATABASE_HOST}:${process.env.SSO_DATABASE_PORT}/${process.env.SSO_DATABASE_NAME}`;
 }
 
 if (!process.env.REDIS_URL) {
