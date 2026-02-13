@@ -2,21 +2,6 @@ import jack from '@boxyhq/saml-jackson';
 import { SQL } from 'bun';
 import { env } from '../env';
 
-let ensureDatabase = async (url: string) => {
-  let parsed = new URL(url);
-  let dbName = parsed.pathname.slice(1);
-  parsed.pathname = '/postgres';
-
-  let sql = new SQL(parsed.toString());
-  let [row] = await sql`SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
-  if (!row) {
-    await sql.unsafe(`CREATE DATABASE "${dbName}"`);
-  }
-  await sql.close();
-};
-
-await ensureDatabase(env.service.SSO_DATABASE_URL);
-
 console.log(env.service.SSO_DATABASE_URL);
 console.log(env.service.SSO_DATABASE_SSL);
 console.log(env.service.SSO_DATABASE_SSL);
@@ -33,6 +18,23 @@ console.log({
   type: 'postgres',
   ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
 });
+
+let ensureDatabase = async (url: string) => {
+  let parsed = new URL(url);
+  let dbName = parsed.pathname.slice(1);
+  parsed.pathname = '/postgres';
+
+  let sql = new SQL(parsed.toString(), {
+    tls: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
+  });
+  let [row] = await sql`SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
+  if (!row) {
+    await sql.unsafe(`CREATE DATABASE "${dbName}"`);
+  }
+  await sql.close();
+};
+
+await ensureDatabase(env.service.SSO_DATABASE_URL);
 
 let ret = await jack({
   noAnalytics: true,
