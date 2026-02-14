@@ -111,7 +111,7 @@ export let authHooksApp = createHono()
     }
 
     return ctx.redirect(
-      `${env.service.ARES_AUTH_URL}/auth-intent?authIntentId=${res.authIntent.id}&authIntentClientSecret=${res.authIntent.clientSecret}`
+      `${env.service.ARES_AUTH_URL}/auth-intent?authIntentId=${res.authIntent.id}#authIntentClientSecret=${res.authIntent.clientSecret}`
     );
   })
   .get('/sso/:ticket', async ctx => {
