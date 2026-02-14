@@ -10,7 +10,9 @@ export let env = createValidatedEnv({
 
     ARES_AUTH_URL: v.string(),
     ARES_ADMIN_URL: v.string(),
-    ARES_SSO_URL: v.string()
+    ARES_SSO_URL: v.string(),
+
+    SSO_DATABASE_SSL: v.optional(v.string())
   },
 
   email: {

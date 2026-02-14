@@ -7,7 +7,9 @@ let ensureDatabase = async (url: string) => {
   let dbName = parsed.pathname.slice(1);
   parsed.pathname = '/postgres';
 
-  let sql = new SQL(parsed.toString());
+  let sql = new SQL(parsed.toString(), {
+    tls: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
+  });
   let [row] = await sql`SELECT 1 FROM pg_database WHERE datname = ${dbName}`;
   if (!row) {
     await sql.unsafe(`CREATE DATABASE "${dbName}"`);
@@ -26,7 +28,8 @@ let ret = await jack({
   db: {
     engine: 'sql',
     type: 'postgres',
-    url: env.service.SSO_DATABASE_URL
+    url: env.service.SSO_DATABASE_URL,
+    ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
   },
   idpEnabled: true
 });
