@@ -4,19 +4,20 @@ import { authApi } from './apis/auth';
 import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
 import { db } from './db';
+import { withSecurityHeaders } from './lib/securityHeaders';
 
 let server = Bun.serve({
-  fetch: authApi,
+  fetch: withSecurityHeaders(authApi),
   port: 52120
 });
 
 let adminServer = Bun.serve({
-  fetch: adminApi,
+  fetch: withSecurityHeaders(adminApi),
   port: 52121
 });
 
 let ssoServer = Bun.serve({
-  fetch: ssoApi,
+  fetch: withSecurityHeaders(ssoApi),
   port: 52122
 });
 
