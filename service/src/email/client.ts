@@ -21,6 +21,8 @@ export let emailIdentity = emailIdentityProm.promise;
 
 (async () => {
   while (true) {
+    console.log('Registering email sender and identity with Ares relay...');
+
     try {
       let sender = await relay.sender.upsert({
         identifier: 'metorial-ares',
@@ -41,7 +43,7 @@ export let emailIdentity = emailIdentityProm.promise;
       );
       return;
     } catch (err) {
-      console.error('Failed to register app with Ares', err);
+      console.error('Failed to register app with relay', err);
     }
 
     await delay(5000);

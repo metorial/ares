@@ -1,4 +1,4 @@
-import { redis } from 'bun';
+import { RedisClient } from 'bun';
 import { adminApi } from './apis/admin';
 import { authApi } from './apis/auth';
 import { internalApi } from './apis/internal';
@@ -26,20 +26,26 @@ let internalServer = Bun.serve({
   port: 52123
 });
 
-console.log(`Auth service running on http://localhost:${authServer.port}`);
-console.log(`Admin service running on http://localhost:${adminServer.port}`);
-console.log(`SSO service running on http://localhost:${ssoServer.port}`);
-console.log(`Internal service running on http://localhost:${internalServer.port}`);
-
 Bun.serve({
   fetch: async _ => {
     try {
-      await db.tenant.count();
+      await db.admin.count();
+
+      let redis = new RedisClient(process.env.REDIS_URL?.replace('rediss://', 'redis://'), {
+        tls: process.env.REDIS_URL?.startsWith('rediss://')
+      });
       await redis.ping();
+
       return new Response('OK');
     } catch (e) {
+      console.error('Health check failed', e);
       return new Response('Service Unavailable', { status: 503 });
     }
   },
   port: 12121
 });
+
+console.log(`Auth service running on http://localhost:${authServer.port}`);
+console.log(`Admin service running on http://localhost:${adminServer.port}`);
+console.log(`SSO service running on http://localhost:${ssoServer.port}`);
+console.log(`Internal service running on http://localhost:${internalServer.port}`);
