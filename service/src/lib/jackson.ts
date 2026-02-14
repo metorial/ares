@@ -2,23 +2,6 @@ import jack from '@boxyhq/saml-jackson';
 import { SQL } from 'bun';
 import { env } from '../env';
 
-console.log(env.service.SSO_DATABASE_URL);
-console.log(env.service.SSO_DATABASE_SSL);
-console.log(env.service.SSO_DATABASE_SSL);
-
-console.log({
-  engine: 'sql',
-  type: 'postgres',
-  url: env.service.SSO_DATABASE_URL,
-  ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
-});
-
-console.log({
-  engine: 'sql',
-  type: 'postgres',
-  ssl: env.service.SSO_DATABASE_SSL === 'true' ? { rejectUnauthorized: false } : false
-});
-
 let ensureDatabase = async (url: string) => {
   let parsed = new URL(url);
   let dbName = parsed.pathname.slice(1);

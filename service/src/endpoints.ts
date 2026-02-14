@@ -5,7 +5,7 @@ import { internalApi } from './apis/internal';
 import { ssoApi } from './apis/sso';
 import { db } from './db';
 
-let server = Bun.serve({
+let authServer = Bun.serve({
   fetch: authApi,
   port: 52120
 });
@@ -25,7 +25,7 @@ let internalServer = Bun.serve({
   port: 52123
 });
 
-console.log(`Auth service running on http://localhost:${server.port}`);
+console.log(`Auth service running on http://localhost:${authServer.port}`);
 console.log(`Admin service running on http://localhost:${adminServer.port}`);
 console.log(`SSO service running on http://localhost:${ssoServer.port}`);
 console.log(`Internal service running on http://localhost:${internalServer.port}`);
