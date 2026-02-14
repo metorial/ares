@@ -1,3 +1,4 @@
 import { runQueueProcessors } from '@lowerdeck/queue';
+import { cleanupCron } from './cron/cleanup';
 
-await runQueueProcessors([]);
+await runQueueProcessors([cleanupCron]);
