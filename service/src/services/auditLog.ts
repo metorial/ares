@@ -12,21 +12,23 @@ class AuditLogService {
     ua?: string | null;
     metadata?: Record<string, any>;
   }) {
-    db.auditLog
-      .create({
-        data: {
-          ...getId('auditLog'),
-          appOid: d.appOid,
-          type: d.type,
-          userOid: d.userOid ?? null,
-          ip: d.ip ?? null,
-          ua: d.ua ?? null,
-          metadata: d.metadata ?? null
-        }
-      })
-      .catch(err => {
-        console.error('Failed to write audit log:', err);
-      });
+    setTimeout(async () => {
+      db.auditLog
+        .create({
+          data: {
+            ...getId('auditLog'),
+            appOid: d.appOid,
+            type: d.type,
+            userOid: d.userOid ?? null,
+            ip: d.ip ?? null,
+            ua: d.ua ?? null,
+            metadata: d.metadata ?? null
+          }
+        })
+        .catch(err => {
+          console.error('Failed to write audit log:', err);
+        });
+    }, 10 * 1000);
   }
 
   async list(d: { app: App; type?: string }) {
