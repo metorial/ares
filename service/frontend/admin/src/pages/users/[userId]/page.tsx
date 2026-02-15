@@ -10,13 +10,13 @@ export let UserPage = () => {
 
   return renderWithLoader({ user })(({ user }) => (
     <>
-      <Title as="h1" size="7">
+      <Title weight="strong" as="h1" size="7">
         {user.data.name}
       </Title>
 
       <Spacer size={15} />
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         User Profile
       </Title>
 
@@ -28,8 +28,14 @@ export let UserPage = () => {
           { label: 'Name', value: user.data.name },
           { label: 'First Name', value: user.data.firstName },
           { label: 'Last Name', value: user.data.lastName },
-          { label: 'Created At', value: new Date(user.data.createdAt).toLocaleDateString('de-at') },
-          { label: 'Updated At', value: new Date(user.data.updatedAt).toLocaleDateString('de-at') },
+          {
+            label: 'Created At',
+            value: new Date(user.data.createdAt).toLocaleDateString('de-at')
+          },
+          {
+            label: 'Updated At',
+            value: new Date(user.data.updatedAt).toLocaleDateString('de-at')
+          },
           {
             label: 'Last Login At',
             value: user.data.lastLoginAt
@@ -45,7 +51,7 @@ export let UserPage = () => {
         ]}
       />
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Emails
       </Title>
 
@@ -54,13 +60,11 @@ export let UserPage = () => {
         data={user.data.emails.map((email: any) => [
           email.email,
           email.isPrimary ? 'Yes' : 'No',
-          email.verifiedAt
-            ? new Date(email.verifiedAt).toLocaleDateString('de-at')
-            : 'No'
+          email.verifiedAt ? new Date(email.verifiedAt).toLocaleDateString('de-at') : 'No'
         ])}
       />
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Auth Attempts
       </Title>
 
@@ -75,7 +79,7 @@ export let UserPage = () => {
         ])}
       />
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Sessions
       </Title>
 

@@ -1,5 +1,16 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Badge, Button, Datalist, Dialog, Input, Select, showModal, Spacer, Text, Title } from '@metorial-io/ui';
+import {
+  Badge,
+  Button,
+  Datalist,
+  Dialog,
+  Input,
+  Select,
+  showModal,
+  Spacer,
+  Text,
+  Title
+} from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -33,11 +44,11 @@ export let AppPage = () => {
     appAssignments
   })(({ app, ssoTenants, globalSsoTenants, oauthProviders, accessGroups, appAssignments }) => (
     <>
-      <Title as="h1" size="7">
+      <Title weight="strong" as="h1" size="7">
         {app.data.clientId}
       </Title>
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         App Details
       </Title>
 
@@ -51,8 +62,14 @@ export let AppPage = () => {
           { label: 'Default Tenant', value: app.data.defaultTenant?.clientId ?? '-' },
           { label: 'Users', value: app.data.counts.users },
           { label: 'Tenants', value: app.data.counts.tenants },
-          { label: 'Created At', value: new Date(app.data.createdAt).toLocaleDateString('de-at') },
-          { label: 'Updated At', value: new Date(app.data.updatedAt).toLocaleDateString('de-at') }
+          {
+            label: 'Created At',
+            value: new Date(app.data.createdAt).toLocaleDateString('de-at')
+          },
+          {
+            label: 'Updated At',
+            value: new Date(app.data.updatedAt).toLocaleDateString('de-at')
+          }
         ]}
       />
 
@@ -67,7 +84,7 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           OAuth Providers
         </Title>
 
@@ -165,7 +182,10 @@ export let AppPage = () => {
           provider.redirectUri,
           provider.enabled ? 'Yes' : 'No',
           new Date(provider.createdAt).toLocaleDateString('de-at'),
-          <OAuthProviderActions provider={provider} onUpdate={() => oauthProvidersRoot.refetch()} />
+          <OAuthProviderActions
+            provider={provider}
+            onUpdate={() => oauthProvidersRoot.refetch()}
+          />
         ])}
       />
 
@@ -178,7 +198,7 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           SSO Tenants
         </Title>
 
@@ -239,11 +259,20 @@ export let AppPage = () => {
         data={[
           ...ssoTenants.data.items.map((tenant: any) => ({
             data: [
-              <>{tenant.name}{tenant.isGlobal && <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge>}</>,
+              <>
+                {tenant.name}
+                {tenant.isGlobal && (
+                  <Badge color="blue" style={{ marginLeft: 8 }}>
+                    Global
+                  </Badge>
+                )}
+              </>,
               tenant.status,
               tenant.counts.connections,
               new Date(tenant.createdAt).toLocaleDateString('de-at'),
-              <Button as="span" size="1">View</Button>
+              <Button as="span" size="1">
+                View
+              </Button>
             ],
             href: `/apps/${appId}/sso/${tenant.id}`
           })),
@@ -251,11 +280,18 @@ export let AppPage = () => {
             .filter((gt: any) => !ssoTenants.data.items.some((t: any) => t.id === gt.id))
             .map((tenant: any) => ({
               data: [
-                <>{tenant.name} <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge></>,
+                <>
+                  {tenant.name}{' '}
+                  <Badge color="blue" style={{ marginLeft: 8 }}>
+                    Global
+                  </Badge>
+                </>,
                 tenant.status,
                 tenant.counts.connections,
                 new Date(tenant.createdAt).toLocaleDateString('de-at'),
-                <Button as="span" size="1">View</Button>
+                <Button as="span" size="1">
+                  View
+                </Button>
               ],
               href: `/apps/${tenant.app.id}/sso/${tenant.id}`
             }))
@@ -271,7 +307,7 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Access Groups
         </Title>
 
@@ -289,7 +325,9 @@ export let AppPage = () => {
             group.name,
             group.counts.rules,
             new Date(group.createdAt).toLocaleDateString('de-at'),
-            <Button as="span" size="1">View</Button>
+            <Button as="span" size="1">
+              View
+            </Button>
           ],
           href: `/apps/${appId}/access-groups/${group.id}`
         }))}
@@ -304,7 +342,7 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           App Access Whitelist
         </Title>
 
@@ -317,7 +355,9 @@ export let AppPage = () => {
                 let assignedIds = new Set(
                   appAssignments.data.map((a: any) => a.accessGroup.id)
                 );
-                let available = accessGroups.data.items.filter((g: any) => !assignedIds.has(g.id));
+                let available = accessGroups.data.items.filter(
+                  (g: any) => !assignedIds.has(g.id)
+                );
 
                 let form = useForm({
                   initialValues: { accessGroupId: available[0]?.id ?? '' },
@@ -382,7 +422,10 @@ export let AppPage = () => {
         data={appAssignments.data.map((assignment: any) => [
           assignment.accessGroup.name,
           assignment.accessGroup.counts.rules,
-          <AppAssignmentActions assignment={assignment} onUpdate={() => appAssignmentsRoot.refetch()} />
+          <AppAssignmentActions
+            assignment={assignment}
+            onUpdate={() => appAssignmentsRoot.refetch()}
+          />
         ])}
       />
 
@@ -395,7 +438,7 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Surfaces
         </Title>
       </div>
@@ -442,7 +485,7 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Redirect Domains
         </Title>
 
@@ -503,13 +546,16 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
       </div>
 
       <p style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>
-        If empty, all redirect domains are allowed. Supports wildcard subdomains like *.example.com
+        If empty, all redirect domains are allowed. Supports wildcard subdomains like
+        *.example.com
       </p>
 
       <Table
         headers={['Domain', '']}
         data={(app.data.redirectDomains ?? []).map((domain: string) => [
-          <Text size="2" style={{ fontFamily: 'monospace' }}>{domain}</Text>,
+          <Text size="2" style={{ fontFamily: 'monospace' }}>
+            {domain}
+          </Text>,
           <Button
             size="1"
             variant="outline"
@@ -533,7 +579,13 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
   );
 };
 
-let OAuthProviderActions = ({ provider, onUpdate }: { provider: any; onUpdate: () => void }) => {
+let OAuthProviderActions = ({
+  provider,
+  onUpdate
+}: {
+  provider: any;
+  onUpdate: () => void;
+}) => {
   let toggleEnabled = useMutation(adminClient.oauthProvider.update);
   let deleteProvider = useMutation(adminClient.oauthProvider.delete);
 

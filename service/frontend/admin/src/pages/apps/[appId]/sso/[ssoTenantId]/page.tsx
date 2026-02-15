@@ -15,11 +15,11 @@ export let SsoTenantPage = () => {
 
   return renderWithLoader({ ssoTenant, connections })(({ ssoTenant, connections }) => (
     <>
-      <Title as="h1" size="7">
+      <Title weight="strong" as="h1" size="7">
         {ssoTenant.data.name}
       </Title>
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         SSO Tenant Details
       </Title>
 
@@ -30,8 +30,14 @@ export let SsoTenantPage = () => {
           { label: 'Status', value: ssoTenant.data.status },
           { label: 'Client ID', value: ssoTenant.data.clientId },
           { label: 'External ID', value: ssoTenant.data.externalId ?? '-' },
-          { label: 'Created At', value: new Date(ssoTenant.data.createdAt).toLocaleDateString('de-at') },
-          { label: 'Updated At', value: new Date(ssoTenant.data.updatedAt).toLocaleDateString('de-at') }
+          {
+            label: 'Created At',
+            value: new Date(ssoTenant.data.createdAt).toLocaleDateString('de-at')
+          },
+          {
+            label: 'Updated At',
+            value: new Date(ssoTenant.data.updatedAt).toLocaleDateString('de-at')
+          }
         ]}
       />
 
@@ -44,7 +50,7 @@ export let SsoTenantPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Global SSO
         </Title>
       </div>
@@ -69,7 +75,7 @@ export let SsoTenantPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Connections
         </Title>
 

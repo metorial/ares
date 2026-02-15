@@ -9,11 +9,11 @@ export let TenantPage = () => {
 
   return renderWithLoader({ tenant })(({ tenant }) => (
     <>
-      <Title as="h1" size="7">
+      <Title weight="strong" as="h1" size="7">
         {tenant.data.clientId}
       </Title>
 
-      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title weight="strong" as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Tenant Details
       </Title>
 
@@ -23,8 +23,14 @@ export let TenantPage = () => {
           { label: 'Client ID', value: tenant.data.clientId },
           { label: 'App ID', value: tenant.data.appId ?? '-' },
           { label: 'Users', value: tenant.data.counts.users },
-          { label: 'Created At', value: new Date(tenant.data.createdAt).toLocaleDateString('de-at') },
-          { label: 'Updated At', value: new Date(tenant.data.updatedAt).toLocaleDateString('de-at') }
+          {
+            label: 'Created At',
+            value: new Date(tenant.data.createdAt).toLocaleDateString('de-at')
+          },
+          {
+            label: 'Updated At',
+            value: new Date(tenant.data.updatedAt).toLocaleDateString('de-at')
+          }
         ]}
       />
     </>

@@ -23,7 +23,7 @@ export let AccessGroupPage = () => {
   return renderWithLoader({ accessGroup })(({ accessGroup }) => (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <Title as="h1" size="7">
+        <Title weight="strong" as="h1" size="7">
           {accessGroup.data.name}
         </Title>
 
@@ -43,7 +43,7 @@ export let AccessGroupPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Rules
         </Title>
 
@@ -138,7 +138,7 @@ export let AccessGroupPage = () => {
           marginBottom: 10
         }}
       >
-        <Title as="h2" size="4">
+        <Title weight="strong" as="h2" size="4">
           Assignments
         </Title>
 
@@ -238,7 +238,10 @@ export let AccessGroupPage = () => {
           return [
             targetLabel,
             targetType,
-            <AssignmentActions assignment={assignment} onUpdate={() => accessGroupRoot.refetch()} />
+            <AssignmentActions
+              assignment={assignment}
+              onUpdate={() => accessGroupRoot.refetch()}
+            />
           ];
         })}
       />
@@ -246,7 +249,13 @@ export let AccessGroupPage = () => {
   ));
 };
 
-let AssignmentActions = ({ assignment, onUpdate }: { assignment: any; onUpdate: () => void }) => {
+let AssignmentActions = ({
+  assignment,
+  onUpdate
+}: {
+  assignment: any;
+  onUpdate: () => void;
+}) => {
   let unassign = useMutation(adminClient.accessGroup.unassign);
 
   return (

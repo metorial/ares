@@ -333,7 +333,7 @@ export let AuthHomeScene = ({
     <AuthLayout>
       {captcha}
 
-      <Title as="h1" weight="bold" size="4">
+      <Title weight="strong" as="h1" weight="bold" size="4">
         {
           {
             login: 'Log in',

@@ -13,7 +13,7 @@ export let AccessGroupsPage = () => {
   return renderWithLoader({ accessGroups })(({ accessGroups }) => (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <Title as="h1" size="7">
+        <Title weight="strong" as="h1" size="7">
           Access Groups
         </Title>
 
@@ -84,7 +84,11 @@ export let AccessGroupsPage = () => {
           group.name,
           group.counts.rules,
           new Date(group.createdAt).toLocaleDateString('de-at'),
-          <AccessGroupActions group={group} appId={appId!} onUpdate={() => accessGroupRoot.refetch()} />
+          <AccessGroupActions
+            group={group}
+            appId={appId!}
+            onUpdate={() => accessGroupRoot.refetch()}
+          />
         ])}
       />
     </>
