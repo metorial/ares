@@ -62,7 +62,7 @@ let CreateUserStep = ({
 
   return (
     <AuthLayout>
-      <Title weight="strong" as="h1" weight="bold" size="4">
+      <Title as="h1" weight="bold" size="4">
         Let's finish setting up your account
       </Title>
 
@@ -185,8 +185,8 @@ let AuthIntentStep = ({
   if (step?.type == 'email_code') {
     return (
       <AuthLayout>
-        <Title weight="strong" as="h1" weight="bold" size="4">
-          You've got mail!
+        <Title as="h1" weight="bold" size="4">
+          Verify Your Email
         </Title>
 
         <Spacer height={10} />

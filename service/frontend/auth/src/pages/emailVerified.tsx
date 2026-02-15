@@ -8,8 +8,8 @@ export let EmailVerified = () => {
 
   return (
     <AuthLayout>
-      <Title weight="strong" as="h1" weight="bold" size="4">
-        Nice work!
+      <Title as="h1" weight="bold" size="4">
+        Email Verified
       </Title>
 
       <Spacer height={10} />
