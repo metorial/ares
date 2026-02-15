@@ -110,9 +110,11 @@ export let authHooksApp = createHono()
       return ctx.redirect(redirectUrl.toString());
     }
 
-    return ctx.redirect(
-      `${env.service.ARES_AUTH_URL}/auth-intent?authIntentId=${res.authIntent.id}#authIntentClientSecret=${res.authIntent.clientSecret}`
-    );
+    let authUrl = new URL(`${env.service.ARES_AUTH_URL}/auth-intent`);
+    authUrl.searchParams.set('authIntentId', res.authIntent.id);
+    authUrl.hash = `authIntentClientSecret=${res.authIntent.clientSecret}`;
+
+    return ctx.redirect(authUrl.toString());
   })
   .get('/sso/:ticket', async ctx => {
     let ticket = await tickets.decode(

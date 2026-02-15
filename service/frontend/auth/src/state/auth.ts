@@ -34,12 +34,6 @@ export let authState = createLoader({
             redirectUrl: string;
           }
         | {
-            type: 'internal';
-            clientId: string;
-            token: string;
-            redirectUrl: string;
-          }
-        | {
             type: 'sso';
             clientId: string;
             ssoTenantId: string;

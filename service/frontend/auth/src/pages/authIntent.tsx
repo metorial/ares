@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { AuthIntentScene } from '../scenes/authIntent';
 
 export let AuthIntent = () => {
-  let [searchParams] = useSearchParams();
+  let [searchParams, setSearchParams] = useSearchParams();
   let authIntentId = searchParams.get('authIntentId');
 
   let [authIntentClientSecret, setAuthIntentClientSecret] = useState<string | null>(null);
@@ -15,6 +15,15 @@ export let AuthIntent = () => {
 
     if (authIntentClientSecret) {
       setAuthIntentClientSecret(authIntentClientSecret);
+    } else {
+      authIntentClientSecret = searchParams.get('authIntentClientSecret');
+      if (authIntentClientSecret) {
+        setAuthIntentClientSecret(authIntentClientSecret);
+        setSearchParams(m => {
+          m.delete('authIntentClientSecret');
+          return m;
+        });
+      }
     }
 
     // Clear the hash
