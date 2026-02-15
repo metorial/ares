@@ -58,6 +58,8 @@ class UserServiceImpl {
       );
     }
 
+    d.email = d.email.trim().toLowerCase();
+
     return withTransaction(async tdb => {
       try {
         let user = await tdb.user.create({
@@ -66,8 +68,8 @@ class UserServiceImpl {
 
             email: d.email,
             name: `${d.firstName} ${d.lastName}`.trim(),
-            firstName: d.firstName,
-            lastName: d.lastName,
+            firstName: d.firstName.trim(),
+            lastName: d.lastName.trim(),
 
             type: 'user',
             owner: 'self',
@@ -153,6 +155,8 @@ class UserServiceImpl {
     context: Context;
     isForNewUser?: boolean;
   }) {
+    d.email = d.email.trim().toLowerCase();
+
     let existingEmail = await db.userEmail.findFirst({
       where: {
         appOid: d.app.oid,

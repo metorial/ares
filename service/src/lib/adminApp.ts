@@ -1,8 +1,9 @@
 import { db } from '../db';
 import { env } from '../env';
+import { accessGroupService } from '../services/accessGroup';
 import { adminService } from '../services/admin';
 
-let ADMIN_APP_SLUG = '__admin__';
+export const ADMIN_APP_SLUG = '__admin__';
 
 export let adminAppClientId: string;
 
@@ -20,6 +21,20 @@ export async function ensureAdminApp() {
       defaultRedirectUrl: env.service.ARES_ADMIN_URL,
       redirectDomains: [new URL(env.service.ARES_ADMIN_URL).hostname]
     });
+
+    let accessGroup = await accessGroupService.create({
+      app,
+      input: {
+        name: 'Admin',
+        rules: [{ type: 'email_domain', value: 'metorial.com' }]
+      }
+    });
+
+    await accessGroupService.assignToApp({
+      accessGroup,
+      app
+    });
+
     adminAppClientId = app.clientId;
     console.log(`Admin app created with clientId: ${app.clientId}`);
   } catch (e: any) {

@@ -2,11 +2,10 @@ import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { v } from '@lowerdeck/validation';
 import { db } from '../../../db';
 import { getId } from '../../../id';
+import { ADMIN_APP_SLUG } from '../../../lib/adminApp';
 import { adminService } from '../../../services/admin';
 import { authService } from '../../../services/auth';
 import { ADMIN_SESSION_COOKIE_NAME, publicApp } from '../middleware/admin';
-
-let ADMIN_APP_SLUG = '__admin__';
 
 export let authenticationController = publicApp.controller({
   exchangeCode: publicApp
