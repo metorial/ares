@@ -59,7 +59,7 @@ export let createTemplateSender = <Data>(
     send: async (i: { data: Data; to: string[] }) => {
       let rendered = await template.render(i.data);
 
-      let a = await relay.email.send({
+      await relay.email.send({
         type: 'email',
         to: i.to,
         template: i.data as any,
@@ -73,10 +73,6 @@ export let createTemplateSender = <Data>(
           text: await rendered.text
         }
       });
-
-      console.log(a);
-
-      return a;
     }
   };
 };
