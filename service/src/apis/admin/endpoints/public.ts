@@ -2,6 +2,7 @@ import { createHono } from '@lowerdeck/hono';
 import path, { join } from 'path';
 import { env } from '../../../env';
 import { adminAppClientId } from '../../../lib/adminApp';
+import { registerPublicFiles } from '../../../lib/publicFiles';
 
 let assetsDir = path.join(process.cwd(), 'frontend', 'admin', 'dist', 'assets');
 
@@ -22,7 +23,10 @@ let getIndexHtmlText = async () => {
   return cachedIndexHtmlText;
 };
 
-export let publicApp = createHono()
+let app = createHono();
+registerPublicFiles(app);
+
+export let publicApp = app
   .get('/ping', c => c.text('OK'))
   .get('/metorial-ares-admin/assets/:key*', async c => {
     let key = c.req.param('key*');

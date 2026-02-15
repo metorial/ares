@@ -4,6 +4,7 @@ import { v } from '@lowerdeck/validation';
 import path, { join } from 'path';
 import { env } from '../../../env';
 import { htmlEncode } from '../../../lib/htmlEncode';
+import { registerPublicFiles } from '../../../lib/publicFiles';
 import { tickets } from '../../../lib/tickets';
 import { userService } from '../../../services/user';
 
@@ -26,7 +27,10 @@ let getIndexHtmlText = async () => {
   return cachedIndexHtmlText;
 };
 
-export let publicApp = createHono()
+let app = createHono();
+registerPublicFiles(app);
+
+export let publicApp = app
   .get('/ping', c => c.text('OK'))
   .get('/metorial-ares/assets/:key*', async c => {
     let key = c.req.param('key*');

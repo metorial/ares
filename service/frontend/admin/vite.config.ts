@@ -16,7 +16,11 @@ export default defineConfig({
       '/metorial-ares-admin/api': {
         target: 'http://localhost:52121',
         changeOrigin: true
-      }
+      },
+      '/favicon.ico': { target: 'http://localhost:52121', changeOrigin: true },
+      '/favicon.svg': { target: 'http://localhost:52121', changeOrigin: true },
+      '/favicon-96x96.png': { target: 'http://localhost:52121', changeOrigin: true },
+      '/apple-touch-icon.png': { target: 'http://localhost:52121', changeOrigin: true }
     }
   },
 
