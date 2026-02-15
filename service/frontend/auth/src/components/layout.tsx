@@ -1,3 +1,4 @@
+import { theme } from '@metorial-io/ui';
 import React from 'react';
 import { styled } from 'styled-components';
 
@@ -81,6 +82,33 @@ let Content = styled.div`
   margin: auto 0; /* vertical centering when content is small */
 `;
 
+let Footer = styled('footer')`
+  margin: 20px;
+
+  p {
+    font-size: 12px;
+    color: ${theme.colors.gray600};
+    /* text-shadow: 0 0 4px rgba(0, 0, 0, 0.2); */
+    font-weight: 600;
+
+    a {
+      color: inherit;
+      text-decoration: underline;
+    }
+  }
+
+  @media (min-width: 800px) {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 600px;
+    display: flex;
+    justify-content: center;
+    text-wrap: balance;
+    text-align: center;
+  }
+`;
+
 export let AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
     <Wrapper>
@@ -91,6 +119,15 @@ export let AuthLayout = ({ children }: { children: React.ReactNode }) => {
           </Side>
         </Inner>
       </Box>
+
+      <Footer>
+        <p>
+          By signing up for, logging in to and/or using a{' '}
+          <a href="https://metorial.com">Metorial</a> service, you agree to Metorial's{' '}
+          <a href="https://metorial.com/legal/terms-of-service">terms of service</a> and{' '}
+          <a href="https://metorial.com/legal/privacy-policy">privacy policy</a>.
+        </p>
+      </Footer>
     </Wrapper>
   );
 };
