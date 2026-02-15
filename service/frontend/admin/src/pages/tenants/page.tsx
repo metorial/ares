@@ -1,8 +1,7 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Button } from '@metorial-io/ui';
-import { Table, TextField } from '@radix-ui/themes';
+import { Button, Input } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { appsState, tenantsState } from '../../state';
 
 export let TenantsPage = () => {
@@ -80,37 +79,22 @@ let TenantsForApp = ({
             onSearchChange(formData.get('search') as string);
           }}
         >
-          <TextField.Root placeholder="Search" name="search" defaultValue={search} />
+          <Input label="Search" hideLabel placeholder="Search" name="search" defaultValue={search} />
         </form>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {tenants.data.items.map((tenant: any) => (
-            <Table.Row key={tenant.id}>
-              <Table.Cell>{tenant.clientId}</Table.Cell>
-              <Table.Cell>{tenant.counts.users}</Table.Cell>
-              <Table.Cell>{new Date(tenant.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-              <Table.Cell>
-                <Link to={`/tenants/${tenant.id}`}>
-                  <Button as="span" size="1">
-                    View
-                  </Button>
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Client ID', 'Users', 'Created At', '']}
+        data={tenants.data.items.map((tenant: any) => ({
+          data: [
+            tenant.clientId,
+            tenant.counts.users,
+            new Date(tenant.createdAt).toLocaleDateString('de-at'),
+            <Button as="span" size="1">View</Button>
+          ],
+          href: `/tenants/${tenant.id}`
+        }))}
+      />
 
       {tenants.data.items.length > 0 && (
         <Button

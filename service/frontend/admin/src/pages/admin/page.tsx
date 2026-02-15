@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Button } from '@metorial-io/ui';
-import { Table, TextField } from '@radix-ui/themes';
+import { Button, Input } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useState } from 'react';
 import { adminsState } from '../../state';
 
@@ -24,34 +24,17 @@ export let AdminsPage = () => {
           setSearch(search);
         }}
       >
-        <TextField.Root
-          placeholder="Search"
-          name="search"
-          defaultValue={search}
-        />
+        <Input label="Search" hideLabel placeholder="Search" name="search" defaultValue={search} />
       </form>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {admins.data.items.map((admin: any) => (
-            <Table.Row key={admin.id}>
-              <Table.Cell>{admin.name}</Table.Cell>
-              <Table.Cell>{admin.email}</Table.Cell>
-              <Table.Cell>
-                {new Date(admin.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Name', 'Email', 'Created At']}
+        data={admins.data.items.map((admin: any) => [
+          admin.name,
+          admin.email,
+          new Date(admin.createdAt).toLocaleDateString('de-at')
+        ])}
+      />
 
       {admins.data.items.length > 0 && (
         <Button

@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Badge, DataList, Heading, Select, Table, Text } from '@radix-ui/themes';
+import { Badge, Button, Datalist, Dialog, Input, Select, showModal, Spacer, Text, Title } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import {
   accessGroupsState,
@@ -33,33 +33,28 @@ export let AppPage = () => {
     appAssignments
   })(({ app, ssoTenants, globalSsoTenants, oauthProviders, accessGroups, appAssignments }) => (
     <>
-      <Heading as="h1" size="7">
+      <Title as="h1" size="7">
         {app.data.clientId}
-      </Heading>
+      </Title>
 
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         App Details
-      </Heading>
+      </Title>
 
-      <DataList.Root>
-        {[
-          ['ID', app.data.id],
-          ['Client ID', app.data.clientId],
-          ['Slug', app.data.slug ?? '-'],
-          ['Has Terms', app.data.hasTerms ? 'Yes' : 'No'],
-          ['Default Redirect URL', app.data.defaultRedirectUrl ?? '-'],
-          ['Default Tenant', app.data.defaultTenant?.clientId ?? '-'],
-          ['Users', app.data.counts.users],
-          ['Tenants', app.data.counts.tenants],
-          ['Created At', new Date(app.data.createdAt).toLocaleDateString('de-at')],
-          ['Updated At', new Date(app.data.updatedAt).toLocaleDateString('de-at')]
-        ].map(([label, value]) => (
-          <DataList.Item key={label}>
-            <DataList.Label>{label}</DataList.Label>
-            <DataList.Value>{value}</DataList.Value>
-          </DataList.Item>
-        ))}
-      </DataList.Root>
+      <Datalist
+        items={[
+          { label: 'ID', value: app.data.id },
+          { label: 'Client ID', value: app.data.clientId },
+          { label: 'Slug', value: app.data.slug ?? '-' },
+          { label: 'Has Terms', value: app.data.hasTerms ? 'Yes' : 'No' },
+          { label: 'Default Redirect URL', value: app.data.defaultRedirectUrl ?? '-' },
+          { label: 'Default Tenant', value: app.data.defaultTenant?.clientId ?? '-' },
+          { label: 'Users', value: app.data.counts.users },
+          { label: 'Tenants', value: app.data.counts.tenants },
+          { label: 'Created At', value: new Date(app.data.createdAt).toLocaleDateString('de-at') },
+          { label: 'Updated At', value: new Date(app.data.updatedAt).toLocaleDateString('de-at') }
+        ]}
+      />
 
       <RedirectDomainsSection appId={appId!} app={app} />
 
@@ -72,9 +67,9 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           OAuth Providers
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -119,28 +114,15 @@ export let AppPage = () => {
                   <Dialog.Title>Add OAuth Provider</Dialog.Title>
 
                   <form onSubmit={form.handleSubmit}>
-                    <div style={{ marginBottom: 10 }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          marginBottom: 4,
-                          fontSize: 14,
-                          fontWeight: 500
-                        }}
-                      >
-                        Provider
-                      </label>
-                      <Select.Root
-                        value={form.values.provider}
-                        onValueChange={val => form.setFieldValue('provider', val)}
-                      >
-                        <Select.Trigger style={{ width: '100%' }} />
-                        <Select.Content>
-                          <Select.Item value="google">Google</Select.Item>
-                          <Select.Item value="github">GitHub</Select.Item>
-                        </Select.Content>
-                      </Select.Root>
-                    </div>
+                    <Select
+                      label="Provider"
+                      value={form.values.provider}
+                      onChange={val => form.setFieldValue('provider', val)}
+                      items={[
+                        { id: 'google', label: 'Google' },
+                        { id: 'github', label: 'GitHub' }
+                      ]}
+                    />
 
                     <Input label="Client ID" {...form.getFieldProps('clientId')} />
                     <form.RenderError field="clientId" />
@@ -175,36 +157,17 @@ export let AppPage = () => {
         </Button>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Provider</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Redirect URI</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Enabled</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {oauthProviders.data.items.map((provider: any) => (
-            <OAuthProviderRow
-              key={provider.id}
-              provider={provider}
-              onUpdate={() => oauthProvidersRoot.refetch()}
-            />
-          ))}
-
-          {oauthProviders.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={6} style={{ textAlign: 'center', color: '#888' }}>
-                No OAuth providers configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Provider', 'Client ID', 'Redirect URI', 'Enabled', 'Created At', '']}
+        data={oauthProviders.data.items.map((provider: any) => [
+          provider.provider,
+          provider.clientId,
+          provider.redirectUri,
+          provider.enabled ? 'Yes' : 'No',
+          new Date(provider.createdAt).toLocaleDateString('de-at'),
+          <OAuthProviderActions provider={provider} onUpdate={() => oauthProvidersRoot.refetch()} />
+        ])}
+      />
 
       <div
         style={{
@@ -215,9 +178,9 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           SSO Tenants
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -271,75 +234,33 @@ export let AppPage = () => {
         </Button>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Connections</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {ssoTenants.data.items.map((tenant: any) => (
-            <Table.Row key={tenant.id}>
-              <Table.Cell>
-                {tenant.name}
-                {tenant.isGlobal && (
-                  <Badge color="blue" style={{ marginLeft: 8 }}>
-                    Global
-                  </Badge>
-                )}
-              </Table.Cell>
-              <Table.Cell>{tenant.status}</Table.Cell>
-              <Table.Cell>{tenant.counts.connections}</Table.Cell>
-              <Table.Cell>{new Date(tenant.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-              <Table.Cell>
-                <Link to={`/apps/${appId}/sso/${tenant.id}`}>
-                  <Button as="span" size="1">
-                    View
-                  </Button>
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-
-          {globalSsoTenants.data.items
+      <Table
+        headers={['Name', 'Status', 'Connections', 'Created At', '']}
+        data={[
+          ...ssoTenants.data.items.map((tenant: any) => ({
+            data: [
+              <>{tenant.name}{tenant.isGlobal && <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge>}</>,
+              tenant.status,
+              tenant.counts.connections,
+              new Date(tenant.createdAt).toLocaleDateString('de-at'),
+              <Button as="span" size="1">View</Button>
+            ],
+            href: `/apps/${appId}/sso/${tenant.id}`
+          })),
+          ...globalSsoTenants.data.items
             .filter((gt: any) => !ssoTenants.data.items.some((t: any) => t.id === gt.id))
-            .map((tenant: any) => (
-              <Table.Row key={tenant.id}>
-                <Table.Cell>
-                  {tenant.name}
-                  <Badge color="blue" style={{ marginLeft: 8 }}>
-                    Global
-                  </Badge>
-                </Table.Cell>
-                <Table.Cell>{tenant.status}</Table.Cell>
-                <Table.Cell>{tenant.counts.connections}</Table.Cell>
-                <Table.Cell>
-                  {new Date(tenant.createdAt).toLocaleDateString('de-at')}
-                </Table.Cell>
-                <Table.Cell>
-                  <Link to={`/apps/${tenant.app.id}/sso/${tenant.id}`}>
-                    <Button as="span" size="1">
-                      View
-                    </Button>
-                  </Link>
-                </Table.Cell>
-              </Table.Row>
-            ))}
-
-          {ssoTenants.data.items.length === 0 && globalSsoTenants.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={5} style={{ textAlign: 'center', color: '#888' }}>
-                No SSO tenants configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+            .map((tenant: any) => ({
+              data: [
+                <>{tenant.name} <Badge color="blue" style={{ marginLeft: 8 }}>Global</Badge></>,
+                tenant.status,
+                tenant.counts.connections,
+                new Date(tenant.createdAt).toLocaleDateString('de-at'),
+                <Button as="span" size="1">View</Button>
+              ],
+              href: `/apps/${tenant.app.id}/sso/${tenant.id}`
+            }))
+        ]}
+      />
 
       <div
         style={{
@@ -350,9 +271,9 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Access Groups
-        </Heading>
+        </Title>
 
         <Link to={`/apps/${appId}/access-groups`}>
           <Button as="span" size="1">
@@ -361,41 +282,18 @@ export let AppPage = () => {
         </Link>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Rules</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {accessGroups.data.items.map((group: any) => (
-            <Table.Row key={group.id}>
-              <Table.Cell>{group.name}</Table.Cell>
-              <Table.Cell>{group.counts.rules}</Table.Cell>
-              <Table.Cell>{new Date(group.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-              <Table.Cell>
-                <Link to={`/apps/${appId}/access-groups/${group.id}`}>
-                  <Button as="span" size="1">
-                    View
-                  </Button>
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-
-          {accessGroups.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
-                No access groups configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Name', 'Rules', 'Created At', '']}
+        data={accessGroups.data.items.map((group: any) => ({
+          data: [
+            group.name,
+            group.counts.rules,
+            new Date(group.createdAt).toLocaleDateString('de-at'),
+            <Button as="span" size="1">View</Button>
+          ],
+          href: `/apps/${appId}/access-groups/${group.id}`
+        }))}
+      />
 
       <div
         style={{
@@ -406,9 +304,9 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           App Access Whitelist
-        </Heading>
+        </Title>
 
         {accessGroups.data.items.length > 0 && (
           <Button
@@ -447,31 +345,12 @@ export let AppPage = () => {
                       <p style={{ color: '#888' }}>All access groups are already assigned.</p>
                     ) : (
                       <form onSubmit={form.handleSubmit}>
-                        <div style={{ marginBottom: 10 }}>
-                          <label
-                            style={{
-                              display: 'block',
-                              marginBottom: 4,
-                              fontSize: 14,
-                              fontWeight: 500
-                            }}
-                          >
-                            Access Group
-                          </label>
-                          <Select.Root
-                            value={form.values.accessGroupId}
-                            onValueChange={val => form.setFieldValue('accessGroupId', val)}
-                          >
-                            <Select.Trigger style={{ width: '100%' }} />
-                            <Select.Content>
-                              {available.map((g: any) => (
-                                <Select.Item key={g.id} value={g.id}>
-                                  {g.name}
-                                </Select.Item>
-                              ))}
-                            </Select.Content>
-                          </Select.Root>
-                        </div>
+                        <Select
+                          label="Access Group"
+                          value={form.values.accessGroupId}
+                          onChange={val => form.setFieldValue('accessGroupId', val)}
+                          items={available.map((g: any) => ({ id: g.id, label: g.name }))}
+                        />
 
                         <Button
                           type="submit"
@@ -498,33 +377,14 @@ export let AppPage = () => {
         match at least one assigned access group.
       </p>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Access Group</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Rules</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {appAssignments.data.map((assignment: any) => (
-            <AppAssignmentRow
-              key={assignment.id}
-              assignment={assignment}
-              onUpdate={() => appAssignmentsRoot.refetch()}
-            />
-          ))}
-
-          {appAssignments.data.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={3} style={{ textAlign: 'center', color: '#888' }}>
-                No access groups assigned (all users allowed)
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Access Group', 'Rules', '']}
+        data={appAssignments.data.map((assignment: any) => [
+          assignment.accessGroup.name,
+          assignment.accessGroup.counts.rules,
+          <AppAssignmentActions assignment={assignment} onUpdate={() => appAssignmentsRoot.refetch()} />
+        ])}
+      />
 
       <div
         style={{
@@ -535,15 +395,15 @@ export let AppPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Surfaces
-        </Heading>
+        </Title>
       </div>
     </>
   ));
 };
 
-let AppAssignmentRow = ({
+let AppAssignmentActions = ({
   assignment,
   onUpdate
 }: {
@@ -553,24 +413,18 @@ let AppAssignmentRow = ({
   let unassign = useMutation(adminClient.accessGroup.unassign);
 
   return (
-    <Table.Row>
-      <Table.Cell>{assignment.accessGroup.name}</Table.Cell>
-      <Table.Cell>{assignment.accessGroup.counts.rules}</Table.Cell>
-      <Table.Cell>
-        <Button
-          size="1"
-          variant="outline"
-          loading={unassign.isLoading}
-          onClick={async () => {
-            if (!confirm('Remove this access group from the app whitelist?')) return;
-            await unassign.mutate({ assignmentId: assignment.id });
-            onUpdate();
-          }}
-        >
-          Remove
-        </Button>
-      </Table.Cell>
-    </Table.Row>
+    <Button
+      size="1"
+      variant="outline"
+      loading={unassign.isLoading}
+      onClick={async () => {
+        if (!confirm('Remove this access group from the app whitelist?')) return;
+        await unassign.mutate({ assignmentId: assignment.id });
+        onUpdate();
+      }}
+    >
+      Remove
+    </Button>
   );
 };
 
@@ -588,9 +442,9 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Redirect Domains
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -652,100 +506,65 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
         If empty, all redirect domains are allowed. Supports wildcard subdomains like *.example.com
       </p>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Domain</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {(app.data.redirectDomains ?? []).map((domain: string) => (
-            <Table.Row key={domain}>
-              <Table.Cell>
-                <Text size="2" style={{ fontFamily: 'monospace' }}>
-                  {domain}
-                </Text>
-              </Table.Cell>
-              <Table.Cell>
-                <Button
-                  size="1"
-                  variant="outline"
-                  loading={update.isLoading}
-                  onClick={async () => {
-                    if (!confirm(`Remove "${domain}" from redirect domains?`)) return;
-                    await update.mutate({
-                      id: appId,
-                      redirectDomains: (app.data.redirectDomains ?? []).filter(
-                        (d: string) => d !== domain
-                      )
-                    });
-                    app.refetch();
-                  }}
-                >
-                  Remove
-                </Button>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-
-          {(!app.data.redirectDomains || app.data.redirectDomains.length === 0) && (
-            <Table.Row>
-              <Table.Cell colSpan={2} style={{ textAlign: 'center', color: '#888' }}>
-                No redirect domains configured (all domains allowed)
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Domain', '']}
+        data={(app.data.redirectDomains ?? []).map((domain: string) => [
+          <Text size="2" style={{ fontFamily: 'monospace' }}>{domain}</Text>,
+          <Button
+            size="1"
+            variant="outline"
+            loading={update.isLoading}
+            onClick={async () => {
+              if (!confirm(`Remove "${domain}" from redirect domains?`)) return;
+              await update.mutate({
+                id: appId,
+                redirectDomains: (app.data.redirectDomains ?? []).filter(
+                  (d: string) => d !== domain
+                )
+              });
+              app.refetch();
+            }}
+          >
+            Remove
+          </Button>
+        ])}
+      />
     </>
   );
 };
 
-let OAuthProviderRow = ({ provider, onUpdate }: { provider: any; onUpdate: () => void }) => {
+let OAuthProviderActions = ({ provider, onUpdate }: { provider: any; onUpdate: () => void }) => {
   let toggleEnabled = useMutation(adminClient.oauthProvider.update);
   let deleteProvider = useMutation(adminClient.oauthProvider.delete);
 
   return (
-    <Table.Row>
-      <Table.Cell>{provider.provider}</Table.Cell>
-      <Table.Cell>{provider.clientId}</Table.Cell>
-      <Table.Cell style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {provider.redirectUri}
-      </Table.Cell>
-      <Table.Cell>{provider.enabled ? 'Yes' : 'No'}</Table.Cell>
-      <Table.Cell>{new Date(provider.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-      <Table.Cell>
-        <div style={{ display: 'flex', gap: 5 }}>
-          <Button
-            size="1"
-            variant="outline"
-            loading={toggleEnabled.isLoading}
-            onClick={async () => {
-              await toggleEnabled.mutate({
-                id: provider.id,
-                enabled: !provider.enabled
-              });
-              onUpdate();
-            }}
-          >
-            {provider.enabled ? 'Disable' : 'Enable'}
-          </Button>
-          <Button
-            size="1"
-            variant="outline"
-            loading={deleteProvider.isLoading}
-            onClick={async () => {
-              if (!confirm('Delete this OAuth provider?')) return;
-              await deleteProvider.mutate({ id: provider.id });
-              onUpdate();
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      </Table.Cell>
-    </Table.Row>
+    <div style={{ display: 'flex', gap: 5 }}>
+      <Button
+        size="1"
+        variant="outline"
+        loading={toggleEnabled.isLoading}
+        onClick={async () => {
+          await toggleEnabled.mutate({
+            id: provider.id,
+            enabled: !provider.enabled
+          });
+          onUpdate();
+        }}
+      >
+        {provider.enabled ? 'Disable' : 'Enable'}
+      </Button>
+      <Button
+        size="1"
+        variant="outline"
+        loading={deleteProvider.isLoading}
+        onClick={async () => {
+          if (!confirm('Delete this OAuth provider?')) return;
+          await deleteProvider.mutate({ id: provider.id });
+          onUpdate();
+        }}
+      >
+        Delete
+      </Button>
+    </div>
   );
 };

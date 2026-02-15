@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Button } from '@metorial-io/ui';
-import { Select, Table } from '@radix-ui/themes';
+import { Button, Select } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useEffect, useState } from 'react';
 import { appsState, auditLogsState } from '../../state';
 
@@ -75,60 +75,32 @@ let AuditLogsForApp = ({
           </select>
         )}
 
-        <Select.Root
+        <Select
           value={type ?? 'all'}
-          onValueChange={val => {
+          onChange={val => {
             setType(val === 'all' ? undefined : val);
             setAfter(undefined);
           }}
-        >
-          <Select.Trigger placeholder="Filter by type" />
-          <Select.Content>
-            <Select.Item value="all">All types</Select.Item>
-            {AUDIT_LOG_TYPES.map(t => (
-              <Select.Item key={t} value={t}>
-                {t}
-              </Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Root>
+          placeholder="Filter by type"
+          items={[
+            { id: 'all', label: 'All types' },
+            ...AUDIT_LOG_TYPES.map(t => ({ id: t, label: t }))
+          ]}
+        />
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>User</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>IP</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Metadata</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {auditLogs.data.items.map((log: any) => (
-            <Table.Row key={log.id}>
-              <Table.Cell>
-                <code style={{ fontSize: 12 }}>{log.type}</code>
-              </Table.Cell>
-              <Table.Cell>{log.user?.email ?? '-'}</Table.Cell>
-              <Table.Cell>{log.ip ?? '-'}</Table.Cell>
-              <Table.Cell style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {log.metadata ? JSON.stringify(log.metadata) : '-'}
-              </Table.Cell>
-              <Table.Cell>{new Date(log.createdAt).toLocaleString('de-at')}</Table.Cell>
-            </Table.Row>
-          ))}
-
-          {auditLogs.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={5} style={{ textAlign: 'center', color: '#888' }}>
-                No audit logs found
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Type', 'User', 'IP', 'Metadata', 'Created At']}
+        data={auditLogs.data.items.map((log: any) => [
+          <code style={{ fontSize: 12 }}>{log.type}</code>,
+          log.user?.email ?? '-',
+          log.ip ?? '-',
+          <span style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+            {log.metadata ? JSON.stringify(log.metadata) : '-'}
+          </span>,
+          new Date(log.createdAt).toLocaleString('de-at')
+        ])}
+      />
 
       {auditLogs.data.items.length > 0 && (
         <Button

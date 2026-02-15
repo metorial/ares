@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Dialog, Input, Select, showModal, Spacer } from '@metorial-io/ui';
-import { Heading, Table } from '@radix-ui/themes';
+import { Button, Dialog, Input, Select, showModal, Spacer, Title } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { accessGroupState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
@@ -23,9 +23,9 @@ export let AccessGroupPage = () => {
   return renderWithLoader({ accessGroup })(({ accessGroup }) => (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <Heading as="h1" size="7">
+        <Title as="h1" size="7">
           {accessGroup.data.name}
-        </Heading>
+        </Title>
 
         <Link to={`/apps/${appId}/access-groups`}>
           <Button as="span" size="1" variant="outline">
@@ -43,9 +43,9 @@ export let AccessGroupPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Rules
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -115,35 +115,19 @@ export let AccessGroupPage = () => {
         </Button>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Value</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {(accessGroup.data.rules ?? []).map((rule: any) => (
-            <RuleRow
-              key={rule.id}
-              rule={rule}
-              accessGroupId={accessGroupId!}
-              allRules={accessGroup.data.rules}
-              onUpdate={() => accessGroupRoot.refetch()}
-            />
-          ))}
-
-          {(!accessGroup.data.rules || accessGroup.data.rules.length === 0) && (
-            <Table.Row>
-              <Table.Cell colSpan={3} style={{ textAlign: 'center', color: '#888' }}>
-                No rules configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Type', 'Value', '']}
+        data={(accessGroup.data.rules ?? []).map((rule: any) => [
+          ruleTypeLabel(rule.type),
+          rule.value,
+          <RuleActions
+            rule={rule}
+            accessGroupId={accessGroupId!}
+            allRules={accessGroup.data.rules}
+            onUpdate={() => accessGroupRoot.refetch()}
+          />
+        ])}
+      />
 
       <div
         style={{
@@ -154,9 +138,9 @@ export let AccessGroupPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Assignments
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -240,71 +224,48 @@ export let AccessGroupPage = () => {
         Assign this access group to the app or specific surfaces to restrict access.
       </p>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Target</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Type</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
+      <Table
+        headers={['Target', 'Type', '']}
+        data={(accessGroup.data.assignments ?? []).map((assignment: any) => {
+          let target = assignment.target;
+          let targetLabel = target
+            ? target.type === 'app'
+              ? target.clientId
+              : target.clientId
+            : 'Unknown';
+          let targetType = target?.type === 'app' ? 'App' : 'Surface';
 
-        <Table.Body>
-          {(accessGroup.data.assignments ?? []).map((assignment: any) => (
-            <AssignmentRow
-              key={assignment.id}
-              assignment={assignment}
-              onUpdate={() => accessGroupRoot.refetch()}
-            />
-          ))}
-
-          {(!accessGroup.data.assignments || accessGroup.data.assignments.length === 0) && (
-            <Table.Row>
-              <Table.Cell colSpan={3} style={{ textAlign: 'center', color: '#888' }}>
-                Not assigned to any app or surface
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+          return [
+            targetLabel,
+            targetType,
+            <AssignmentActions assignment={assignment} onUpdate={() => accessGroupRoot.refetch()} />
+          ];
+        })}
+      />
     </>
   ));
 };
 
-let AssignmentRow = ({ assignment, onUpdate }: { assignment: any; onUpdate: () => void }) => {
+let AssignmentActions = ({ assignment, onUpdate }: { assignment: any; onUpdate: () => void }) => {
   let unassign = useMutation(adminClient.accessGroup.unassign);
 
-  let target = assignment.target;
-  let targetLabel = target
-    ? target.type === 'app'
-      ? target.clientId
-      : target.clientId
-    : 'Unknown';
-  let targetType = target?.type === 'app' ? 'App' : 'Surface';
-
   return (
-    <Table.Row>
-      <Table.Cell>{targetLabel}</Table.Cell>
-      <Table.Cell>{targetType}</Table.Cell>
-      <Table.Cell>
-        <Button
-          size="1"
-          variant="outline"
-          loading={unassign.isLoading}
-          onClick={async () => {
-            if (!confirm('Remove this assignment?')) return;
-            await unassign.mutate({ assignmentId: assignment.id });
-            onUpdate();
-          }}
-        >
-          Remove
-        </Button>
-      </Table.Cell>
-    </Table.Row>
+    <Button
+      size="1"
+      variant="outline"
+      loading={unassign.isLoading}
+      onClick={async () => {
+        if (!confirm('Remove this assignment?')) return;
+        await unassign.mutate({ assignmentId: assignment.id });
+        onUpdate();
+      }}
+    >
+      Remove
+    </Button>
   );
 };
 
-let RuleRow = ({
+let RuleActions = ({
   rule,
   accessGroupId,
   allRules,
@@ -318,29 +279,23 @@ let RuleRow = ({
   let update = useMutation(adminClient.accessGroup.update);
 
   return (
-    <Table.Row>
-      <Table.Cell>{ruleTypeLabel(rule.type)}</Table.Cell>
-      <Table.Cell>{rule.value}</Table.Cell>
-      <Table.Cell>
-        <Button
-          size="1"
-          variant="outline"
-          loading={update.isLoading}
-          onClick={async () => {
-            if (!confirm('Delete this rule?')) return;
-            let remainingRules = allRules
-              .filter((r: any) => r.id !== rule.id)
-              .map((r: any) => ({ type: r.type, value: r.value }));
-            await update.mutate({
-              id: accessGroupId,
-              rules: remainingRules
-            });
-            onUpdate();
-          }}
-        >
-          Delete
-        </Button>
-      </Table.Cell>
-    </Table.Row>
+    <Button
+      size="1"
+      variant="outline"
+      loading={update.isLoading}
+      onClick={async () => {
+        if (!confirm('Delete this rule?')) return;
+        let remainingRules = allRules
+          .filter((r: any) => r.id !== rule.id)
+          .map((r: any) => ({ type: r.type, value: r.value }));
+        await update.mutate({
+          id: accessGroupId,
+          rules: remainingRules
+        });
+        onUpdate();
+      }}
+    >
+      Delete
+    </Button>
   );
 };

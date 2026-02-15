@@ -1,6 +1,6 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Spacer } from '@metorial-io/ui';
-import { DataList, Heading, Table } from '@radix-ui/themes';
+import { Datalist, Spacer, Title } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useParams } from 'react-router-dom';
 import { userState } from '../../../state';
 
@@ -10,141 +10,90 @@ export let UserPage = () => {
 
   return renderWithLoader({ user })(({ user }) => (
     <>
-      <Heading as="h1" size="7">
+      <Title as="h1" size="7">
         {user.data.name}
-      </Heading>
+      </Title>
 
       <Spacer size={15} />
 
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         User Profile
-      </Heading>
+      </Title>
 
-      <DataList.Root>
-        {[
-          ['ID', user.data.id],
-          ['Status', user.data.status],
-          ['Email', user.data.email],
-          ['Name', user.data.name],
-          ['First Name', user.data.firstName],
-          ['Last Name', user.data.lastName],
-          ['Created At', new Date(user.data.createdAt).toLocaleDateString('de-at')],
-          ['Updated At', new Date(user.data.updatedAt).toLocaleDateString('de-at')],
-          [
-            'Last Login At',
-            user.data.lastLoginAt
+      <Datalist
+        items={[
+          { label: 'ID', value: user.data.id },
+          { label: 'Status', value: user.data.status },
+          { label: 'Email', value: user.data.email },
+          { label: 'Name', value: user.data.name },
+          { label: 'First Name', value: user.data.firstName },
+          { label: 'Last Name', value: user.data.lastName },
+          { label: 'Created At', value: new Date(user.data.createdAt).toLocaleDateString('de-at') },
+          { label: 'Updated At', value: new Date(user.data.updatedAt).toLocaleDateString('de-at') },
+          {
+            label: 'Last Login At',
+            value: user.data.lastLoginAt
               ? new Date(user.data.lastLoginAt).toLocaleDateString('de-at')
               : '-'
-          ],
-          [
-            'Last Active At',
-            user.data.lastActiveAt
+          },
+          {
+            label: 'Last Active At',
+            value: user.data.lastActiveAt
               ? new Date(user.data.lastActiveAt).toLocaleDateString('de-at')
               : '-'
-          ]
-        ].map(([label, value]) => (
-          <DataList.Item key={label}>
-            <DataList.Label>{label}</DataList.Label>
-            <DataList.Value>{value}</DataList.Value>
-          </DataList.Item>
-        ))}
-      </DataList.Root>
+          }
+        ]}
+      />
 
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Emails
-      </Heading>
+      </Title>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Primary</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Verified</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
+      <Table
+        headers={['Email', 'Primary', 'Verified']}
+        data={user.data.emails.map((email: any) => [
+          email.email,
+          email.isPrimary ? 'Yes' : 'No',
+          email.verifiedAt
+            ? new Date(email.verifiedAt).toLocaleDateString('de-at')
+            : 'No'
+        ])}
+      />
 
-        <Table.Body>
-          {user.data.emails.map((email: any) => (
-            <Table.Row key={email.id}>
-              <Table.Cell>{email.email}</Table.Cell>
-              <Table.Cell>{email.isPrimary ? 'Yes' : 'No'}</Table.Cell>
-              <Table.Cell>
-                {email.verifiedAt
-                  ? new Date(email.verifiedAt).toLocaleDateString('de-at')
-                  : 'No'}
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Auth Attempts
-      </Heading>
+      </Title>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>ID</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>IP</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>UA</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
+      <Table
+        headers={['ID', 'Status', 'IP', 'UA', 'Created At']}
+        data={user.data.authAttempts.map((attempt: any) => [
+          attempt.id,
+          attempt.status,
+          attempt.ip,
+          attempt.ua,
+          new Date(attempt.createdAt).toLocaleDateString('de-at')
+        ])}
+      />
 
-        <Table.Body>
-          {user.data.authAttempts.map((attempt: any) => (
-            <Table.Row key={attempt.id}>
-              <Table.Cell>{attempt.id}</Table.Cell>
-              <Table.Cell>{attempt.status}</Table.Cell>
-              <Table.Cell>{attempt.ip}</Table.Cell>
-              <Table.Cell>{attempt.ua}</Table.Cell>
-              <Table.Cell>
-                {new Date(attempt.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
-
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         Sessions
-      </Heading>
+      </Title>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>ID</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Status</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>IP</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>UA</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Device ID</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {user.data.sessions.map((session: any) => (
-            <Table.Row key={session.id}>
-              <Table.Cell>{session.id}</Table.Cell>
-              <Table.Cell>
-                {session.loggedOutAt
-                  ? 'Logged Out'
-                  : new Date(session.expiresAt) > new Date()
-                    ? 'Active'
-                    : 'Expired'}
-              </Table.Cell>
-              <Table.Cell>{session.device.ip}</Table.Cell>
-              <Table.Cell>{session.device.ua}</Table.Cell>
-              <Table.Cell>
-                {new Date(session.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
-              <Table.Cell>{session.device.id}</Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['ID', 'Status', 'IP', 'UA', 'Created At', 'Device ID']}
+        data={user.data.sessions.map((session: any) => [
+          session.id,
+          session.loggedOutAt
+            ? 'Logged Out'
+            : new Date(session.expiresAt) > new Date()
+              ? 'Active'
+              : 'Expired',
+          session.device.ip,
+          session.device.ua,
+          new Date(session.createdAt).toLocaleDateString('de-at'),
+          session.device.id
+        ])}
+      />
     </>
   ));
 };

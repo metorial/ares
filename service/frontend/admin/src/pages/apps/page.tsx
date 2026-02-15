@@ -1,8 +1,8 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
 import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Table, TextField } from '@radix-ui/themes';
+import { Table } from '@metorial-io/ui-product';
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { appsState } from '../../state';
 import { adminClient } from '../../state/client';
 
@@ -24,7 +24,7 @@ export let AppsPage = () => {
             setSearch(formData.get('search') as string);
           }}
         >
-          <TextField.Root placeholder="Search" name="search" defaultValue={search} />
+          <Input label="Search" hideLabel placeholder="Search" name="search" defaultValue={search} />
         </form>
 
         <Button
@@ -91,37 +91,20 @@ export let AppsPage = () => {
         </Button>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Client ID</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Slug</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Users</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Tenants</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {apps.data.items.map((app: any) => (
-            <Table.Row key={app.id}>
-              <Table.Cell>{app.clientId}</Table.Cell>
-              <Table.Cell>{app.slug ?? '-'}</Table.Cell>
-              <Table.Cell>{app.counts.users}</Table.Cell>
-              <Table.Cell>{app.counts.tenants}</Table.Cell>
-              <Table.Cell>{new Date(app.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-              <Table.Cell>
-                <Link to={`/apps/${app.id}`}>
-                  <Button as="span" size="1">
-                    View
-                  </Button>
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Client ID', 'Slug', 'Users', 'Tenants', 'Created At', '']}
+        data={apps.data.items.map((app: any) => ({
+          data: [
+            app.clientId,
+            app.slug ?? '-',
+            app.counts.users,
+            app.counts.tenants,
+            new Date(app.createdAt).toLocaleDateString('de-at'),
+            <Button as="span" size="1">View</Button>
+          ],
+          href: `/apps/${app.id}`
+        }))}
+      />
 
       {apps.data.items.length > 0 && (
         <Button

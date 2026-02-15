@@ -1,6 +1,6 @@
 import { renderWithLoader, useMutation } from '@metorial-io/data-hooks';
-import { Button, Spacer } from '@metorial-io/ui';
-import { DataList, Heading, Switch, Table, Text } from '@radix-ui/themes';
+import { Button, Datalist, Spacer, Switch, Title } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useParams } from 'react-router-dom';
 import { ssoConnectionsState, ssoTenantState } from '../../../../../state';
 import { adminClient } from '../../../../../state/client';
@@ -15,30 +15,25 @@ export let SsoTenantPage = () => {
 
   return renderWithLoader({ ssoTenant, connections })(({ ssoTenant, connections }) => (
     <>
-      <Heading as="h1" size="7">
+      <Title as="h1" size="7">
         {ssoTenant.data.name}
-      </Heading>
+      </Title>
 
-      <Heading as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
+      <Title as="h2" size="4" style={{ marginBottom: 10, marginTop: 20 }}>
         SSO Tenant Details
-      </Heading>
+      </Title>
 
-      <DataList.Root>
-        {[
-          ['ID', ssoTenant.data.id],
-          ['Name', ssoTenant.data.name],
-          ['Status', ssoTenant.data.status],
-          ['Client ID', ssoTenant.data.clientId],
-          ['External ID', ssoTenant.data.externalId ?? '-'],
-          ['Created At', new Date(ssoTenant.data.createdAt).toLocaleDateString('de-at')],
-          ['Updated At', new Date(ssoTenant.data.updatedAt).toLocaleDateString('de-at')]
-        ].map(([label, value]) => (
-          <DataList.Item key={label}>
-            <DataList.Label>{label}</DataList.Label>
-            <DataList.Value>{value}</DataList.Value>
-          </DataList.Item>
-        ))}
-      </DataList.Root>
+      <Datalist
+        items={[
+          { label: 'ID', value: ssoTenant.data.id },
+          { label: 'Name', value: ssoTenant.data.name },
+          { label: 'Status', value: ssoTenant.data.status },
+          { label: 'Client ID', value: ssoTenant.data.clientId },
+          { label: 'External ID', value: ssoTenant.data.externalId ?? '-' },
+          { label: 'Created At', value: new Date(ssoTenant.data.createdAt).toLocaleDateString('de-at') },
+          { label: 'Updated At', value: new Date(ssoTenant.data.updatedAt).toLocaleDateString('de-at') }
+        ]}
+      />
 
       <div
         style={{
@@ -49,22 +44,20 @@ export let SsoTenantPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Global SSO
-        </Heading>
+        </Title>
       </div>
 
-      <Text as="label" size="2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Switch
-          checked={ssoTenant.data.isGlobal}
-          disabled={setGlobal.isLoading}
-          onCheckedChange={async checked => {
-            let [res] = await setGlobal.mutate({ id: ssoTenantId!, isGlobal: checked });
-            if (res) ssoTenantRoot.refetch();
-          }}
-        />
-        Available on all apps
-      </Text>
+      <Switch
+        label="Available on all apps"
+        checked={ssoTenant.data.isGlobal}
+        disabled={setGlobal.isLoading}
+        onCheckedChange={async checked => {
+          let [res] = await setGlobal.mutate({ id: ssoTenantId!, isGlobal: checked });
+          if (res) ssoTenantRoot.refetch();
+        }}
+      />
       <setGlobal.RenderError />
 
       <div
@@ -76,9 +69,9 @@ export let SsoTenantPage = () => {
           marginBottom: 10
         }}
       >
-        <Heading as="h2" size="4">
+        <Title as="h2" size="4">
           Connections
-        </Heading>
+        </Title>
 
         <Button
           size="1"
@@ -99,37 +92,15 @@ export let SsoTenantPage = () => {
 
       <createSetup.RenderError />
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Provider Type</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Provider Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {connections.data.items.map((connection: any) => (
-            <Table.Row key={connection.id}>
-              <Table.Cell>{connection.name}</Table.Cell>
-              <Table.Cell>{connection.providerType}</Table.Cell>
-              <Table.Cell>{connection.providerName ?? '-'}</Table.Cell>
-              <Table.Cell>
-                {new Date(connection.createdAt).toLocaleDateString('de-at')}
-              </Table.Cell>
-            </Table.Row>
-          ))}
-
-          {connections.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
-                No connections configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Name', 'Provider Type', 'Provider Name', 'Created At']}
+        data={connections.data.items.map((connection: any) => [
+          connection.name,
+          connection.providerType,
+          connection.providerName ?? '-',
+          new Date(connection.createdAt).toLocaleDateString('de-at')
+        ])}
+      />
 
       <Spacer size={10} />
     </>

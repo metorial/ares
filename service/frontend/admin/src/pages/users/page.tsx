@@ -1,8 +1,7 @@
 import { renderWithLoader } from '@metorial-io/data-hooks';
-import { Button } from '@metorial-io/ui';
-import { Table, TextField } from '@radix-ui/themes';
+import { Button, Input } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { appsState, usersState } from '../../state';
 
 export let UsersPage = () => {
@@ -80,37 +79,22 @@ let UsersForApp = ({
             onSearchChange(formData.get('search') as string);
           }}
         >
-          <TextField.Root placeholder="Search" name="search" defaultValue={search} />
+          <Input label="Search" hideLabel placeholder="Search" name="search" defaultValue={search} />
         </form>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Email</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {users.data.items.map(user => (
-            <Table.Row key={user.id}>
-              <Table.Cell>{user.name}</Table.Cell>
-              <Table.Cell>{user.email}</Table.Cell>
-              <Table.Cell>{new Date(user.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-              <Table.Cell>
-                <Link to={`/users/${user.id}`}>
-                  <Button as="span" size="1">
-                    View
-                  </Button>
-                </Link>
-              </Table.Cell>
-            </Table.Row>
-          ))}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Name', 'Email', 'Created At', '']}
+        data={users.data.items.map(user => ({
+          data: [
+            user.name,
+            user.email,
+            new Date(user.createdAt).toLocaleDateString('de-at'),
+            <Button as="span" size="1">View</Button>
+          ],
+          href: `/users/${user.id}`
+        }))}
+      />
 
       {users.data.items.length > 0 && (
         <Button

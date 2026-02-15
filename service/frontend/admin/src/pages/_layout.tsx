@@ -1,6 +1,5 @@
 import { ExtraHeaderLayout, LargePaneLayout, SidebarPane } from '@metorial-io/layout';
 import { Logo, ModalRoot, Toaster } from '@metorial-io/ui';
-import { Theme } from '@radix-ui/themes';
 import { RiApps2Line, RiFileListLine, RiGroupLine, RiSettings3Line, RiShieldUserLine, RiUserLine } from '@remixicon/react';
 import { Outlet, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
@@ -25,7 +24,7 @@ export let Layout = () => {
   let currentItem = items.find(i => pathname.startsWith(i.to));
 
   return (
-    <Theme style={{ background: '#efefff' }}>
+    <div style={{ background: '#efefff' }}>
       <LargePaneLayout Nav={AdminNav}>
         <SidebarPane
           id="admin"
@@ -53,7 +52,7 @@ export let Layout = () => {
       </LargePaneLayout>
       <Toaster />
       <ModalRoot />
-    </Theme>
+    </div>
   );
 };
 

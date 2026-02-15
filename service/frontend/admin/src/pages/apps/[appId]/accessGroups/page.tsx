@@ -1,6 +1,6 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
-import { Heading, Table } from '@radix-ui/themes';
+import { Button, Dialog, Input, showModal, Spacer, Title } from '@metorial-io/ui';
+import { Table } from '@metorial-io/ui-product';
 import { Link, useParams } from 'react-router-dom';
 import { accessGroupsState } from '../../../../state';
 import { adminClient } from '../../../../state/client';
@@ -13,9 +13,9 @@ export let AccessGroupsPage = () => {
   return renderWithLoader({ accessGroups })(({ accessGroups }) => (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-        <Heading as="h1" size="7">
+        <Title as="h1" size="7">
           Access Groups
-        </Heading>
+        </Title>
 
         <Link to={`/apps/${appId}`}>
           <Button as="span" size="1" variant="outline">
@@ -78,40 +78,20 @@ export let AccessGroupsPage = () => {
         </Button>
       </div>
 
-      <Table.Root variant="surface">
-        <Table.Header>
-          <Table.Row>
-            <Table.ColumnHeaderCell>Name</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Rules</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell>Created At</Table.ColumnHeaderCell>
-            <Table.ColumnHeaderCell></Table.ColumnHeaderCell>
-          </Table.Row>
-        </Table.Header>
-
-        <Table.Body>
-          {accessGroups.data.items.map((group: any) => (
-            <AccessGroupRow
-              key={group.id}
-              group={group}
-              appId={appId!}
-              onUpdate={() => accessGroupRoot.refetch()}
-            />
-          ))}
-
-          {accessGroups.data.items.length === 0 && (
-            <Table.Row>
-              <Table.Cell colSpan={4} style={{ textAlign: 'center', color: '#888' }}>
-                No access groups configured
-              </Table.Cell>
-            </Table.Row>
-          )}
-        </Table.Body>
-      </Table.Root>
+      <Table
+        headers={['Name', 'Rules', 'Created At', '']}
+        data={accessGroups.data.items.map((group: any) => [
+          group.name,
+          group.counts.rules,
+          new Date(group.createdAt).toLocaleDateString('de-at'),
+          <AccessGroupActions group={group} appId={appId!} onUpdate={() => accessGroupRoot.refetch()} />
+        ])}
+      />
     </>
   ));
 };
 
-let AccessGroupRow = ({
+let AccessGroupActions = ({
   group,
   appId,
   onUpdate
@@ -123,31 +103,24 @@ let AccessGroupRow = ({
   let deleteGroup = useMutation(adminClient.accessGroup.delete);
 
   return (
-    <Table.Row>
-      <Table.Cell>{group.name}</Table.Cell>
-      <Table.Cell>{group.counts.rules}</Table.Cell>
-      <Table.Cell>{new Date(group.createdAt).toLocaleDateString('de-at')}</Table.Cell>
-      <Table.Cell>
-        <div style={{ display: 'flex', gap: 5 }}>
-          <Link to={`/apps/${appId}/access-groups/${group.id}`}>
-            <Button as="span" size="1">
-              View
-            </Button>
-          </Link>
-          <Button
-            size="1"
-            variant="outline"
-            loading={deleteGroup.isLoading}
-            onClick={async () => {
-              if (!confirm('Delete this access group?')) return;
-              await deleteGroup.mutate({ id: group.id });
-              onUpdate();
-            }}
-          >
-            Delete
-          </Button>
-        </div>
-      </Table.Cell>
-    </Table.Row>
+    <div style={{ display: 'flex', gap: 5 }}>
+      <Link to={`/apps/${appId}/access-groups/${group.id}`}>
+        <Button as="span" size="1">
+          View
+        </Button>
+      </Link>
+      <Button
+        size="1"
+        variant="outline"
+        loading={deleteGroup.isLoading}
+        onClick={async () => {
+          if (!confirm('Delete this access group?')) return;
+          await deleteGroup.mutate({ id: group.id });
+          onUpdate();
+        }}
+      >
+        Delete
+      </Button>
+    </div>
   );
 };
