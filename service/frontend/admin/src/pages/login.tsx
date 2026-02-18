@@ -4,7 +4,7 @@ import { preload } from '../lib/preload';
 export let LoginPage = () => {
   useEffect(() => {
     let redirectUri = `${preload.adminUrl}/auth/callback`;
-    let url = `${preload.authUrl}/login?client_id=${encodeURIComponent(preload.adminAppClientId)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    let url = `${preload.authUrl}/login?client_id=__admin__&redirect_uri=${encodeURIComponent(redirectUri)}`;
     window.location.replace(url);
   }, []);
 
