@@ -64,7 +64,8 @@ export let authHooksApp = createHono()
 
     let cookieHeader = ctx.req.header('cookie') ?? '';
     let cookies = Cookies.parse(cookieHeader);
-    let stateCookie = cookies[`metorial_oauth_state_${state}`];
+    let stateCookieName = `metorial_oauth_state_${state}`;
+    let stateCookie = cookies[stateCookieName];
     if (!stateCookie) {
       throw new ServiceError(badRequestError({ message: 'Invalid OAuth state' }));
     }
@@ -113,6 +114,14 @@ export let authHooksApp = createHono()
     let authUrl = new URL(`${env.service.ARES_AUTH_URL}/auth-intent`);
     authUrl.searchParams.set('authIntentId', res.authIntent.id);
     authUrl.hash = `authIntentClientSecret=${res.authIntent.clientSecret}`;
+
+    ctx.res.headers.append(
+      'Set-Cookie',
+      Cookies.serialize(stateCookieName, '', {
+        path: '/',
+        expires: new Date(0)
+      })
+    );
 
     return ctx.redirect(authUrl.toString());
   })
