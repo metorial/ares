@@ -11,18 +11,18 @@ export let sendAuthCodeEmail = createTemplateSender(
   createTemplate({
     render: ({ code }: { code: string }) => {
       let splitCode = code;
-      if (code.length === 6) {
-        let first3 = code.slice(0, 3);
-        let last3 = code.slice(3, 6);
-        splitCode = `${first3}-${last3}`;
-      }
+      // if (code.length === 6) {
+      //   let first3 = code.slice(0, 3);
+      //   let last3 = code.slice(3, 6);
+      //   splitCode = `${first3}-${last3}`;
+      // }
 
       return createEmail({
-        subject: `Your Metorial authentication code: ${splitCode}`,
+        subject: `Metorial Authentication Code`,
         preview: `Your authentication code for Metorial is ${splitCode}.`,
         content: (
           <Layout
-            title={`Your Metorial code`}
+            title={`Your Metorial Authentication Code`}
             description={`Use the authentication code below to confirm your email address.`}
           >
             <Code code={code} />
