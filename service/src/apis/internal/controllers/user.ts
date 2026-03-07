@@ -82,7 +82,7 @@ export let userController = internalApp.controller({
       let updated = await userService.updateUser({
         user,
         input: fields,
-        context: { ip: 'internal', ua: 'internal' }
+        context: { ip: '0.0.0.0', ua: 'internal' }
       });
       return authUserPresenter({ ...updated, userEmails: user.userEmails });
     }),
