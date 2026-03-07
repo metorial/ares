@@ -82,7 +82,9 @@ export let authHooksApp = createHono()
       deviceId: stateData.deviceId
     });
 
-    let ip = ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '';
+    let ip = (ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '')
+      .split(',')[0]!
+      .trim();
     let ua = ctx.req.header('user-agent') ?? '';
 
     let res = await authService.authWithSocialProviderToken({
@@ -203,7 +205,9 @@ export let authHooksApp = createHono()
       deviceId: stateData.deviceId
     });
 
-    let ip = ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '';
+    let ip = (ctx.req.header('x-forwarded-for') ?? ctx.req.header('x-real-ip') ?? '')
+      .split(',')[0]!
+      .trim();
     let ua = ctx.req.header('user-agent') ?? '';
 
     let authAttempt = await authService.authWithSso({
