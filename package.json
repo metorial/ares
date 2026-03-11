@@ -18,5 +18,8 @@
     "service",
     "packages/*",
     "clients/*"
-  ]
+  ],
+  "overrides": {
+    "@react-email/components": "1.0.8"
+  }
 }
