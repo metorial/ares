@@ -4,7 +4,8 @@ import type { InternalClient } from '../../../service/src/apis/internal';
 
 type ClientOpts = Parameters<typeof createClient>[0];
 
-export let createAresInternalClient = (o: ClientOpts) => createClient<InternalClient>(o);
+export let createAresInternalClient = (o: ClientOpts): InternalClient =>
+  createClient<InternalClient>(o);
 
 export let createAresAuthClient = (o: ClientOpts) =>
   createClient<{

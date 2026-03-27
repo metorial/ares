@@ -12,6 +12,7 @@
     "frontend:build:auth": "cd frontend/auth && vite build",
     "frontend:build:admin": "cd frontend/admin && vite build",
     "frontend:dev": "cd frontend/auth && vite",
+    "prisma:generate": "bun run db:generate",
     "infra:up": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra up -d --pull always",
     "infra:down": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra down",
     "infra:logs": "docker compose -p ares -f ./docker-compose.dev.yml --profile infra logs -f",
