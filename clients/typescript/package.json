@@ -27,7 +27,7 @@
   "scripts": {
     "test": "vitest run --passWithNoTests",
     "lint": "prettier src/**/*.ts --check",
-    "build:client": "rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
+    "build:client": "bun --cwd=../../service run prisma:generate && rm -rf ./dist && microbundle && dts-bundle-generator --config dts-bundle-generator.config.json",
     "prepublish": "bun run build:client"
   },
   "dependencies": {
