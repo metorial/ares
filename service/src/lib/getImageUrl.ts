@@ -1,21 +1,8 @@
-export type EntityImage =
-  | {
-      type: 'file';
-      fileId: string;
-      fileLinkId: string;
-      fileReferenceId?: string;
-      fileUrl?: string;
-      url?: string;
-    }
-  | { type: 'enterprise_file'; fileId: string }
-  | { type: 'url'; url: string }
-  | { type: 'default' };
-
 export type GetImageFieldsParams = {
   id: string;
   name?: string | null;
   email?: string | null;
-  image: EntityImage | null;
+  image: PrismaJson.EntityImage | null;
 };
 
 export let getImageFields = async (entity: GetImageFieldsParams) => {
@@ -43,5 +30,5 @@ export let getImageUrl = async (entity: {
   id: string;
   name?: string | null;
   email?: string | null;
-  image: EntityImage | null;
+  image: PrismaJson.EntityImage | null;
 }) => (await getImageFields(entity)).imageUrl;

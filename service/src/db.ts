@@ -13,9 +13,9 @@ export let db = new PrismaClient({ adapter });
 
 declare global {
   namespace PrismaJson {
+    // @ts-ignore
     type EntityImage =
-      | { type: 'file'; fileId: string; fileLinkId: string; url: string }
-      | { type: 'enterprise_file'; fileId: string }
+      | { type: 'file'; url?: string; fileUrl?: string }
       | { type: 'url'; url: string }
       | { type: 'default' };
   }
