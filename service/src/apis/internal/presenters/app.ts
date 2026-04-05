@@ -13,6 +13,8 @@ export let appPresenter = (
   slug: app.slug,
 
   hasTerms: app.hasTerms,
+  isSessionless: app.isSessionless,
+  disableEmailAuth: app.disableEmailAuth,
   defaultRedirectUrl: app.defaultRedirectUrl,
   redirectDomains: app.redirectDomains,
 

@@ -32,8 +32,35 @@ import { deviceService } from './device';
 import { userService } from './user';
 
 class AuthServiceImpl {
+  async ensureEmailAuthEnabled(d: { app?: App; appOid?: bigint }) {
+    let app = d.app;
+
+    if (!app) {
+      if (!d.appOid) throw new Error('Must provide app or appOid');
+
+      let r = await db.app.findUnique({
+        where: { oid: d.appOid }
+      });
+      if (r) app = r;
+    }
+
+    if (!app) throw new ServiceError(notFoundError('app'));
+
+    if (app.disableEmailAuth) {
+      throw new ServiceError(
+        forbiddenError({ message: 'Email authentication is disabled for this app' })
+      );
+    }
+
+    return app;
+  }
+
   async getAuthOptions(d: { app: App }) {
-    let options: { type: string; name?: string }[] = [{ type: 'email' }];
+    let options: { type: string; name?: string }[] = [];
+
+    if (!d.app.disableEmailAuth) {
+      options.push({ type: 'email' });
+    }
 
     let oauthProviders = await db.appOAuthProvider.findMany({
       where: {
@@ -70,6 +97,8 @@ class AuthServiceImpl {
     captchaToken?: string;
     app: App;
   }) {
+    await this.ensureEmailAuthEnabled({ app: d.app });
+
     if (d.captchaToken && !(await turnstileVerifier.verify({ token: d.captchaToken }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
@@ -428,6 +457,8 @@ class AuthServiceImpl {
   async createAuthIntentStep(
     i: { type: 'email_code'; email: string } & { authIntent: AuthIntent; index: number }
   ) {
+    await this.ensureEmailAuthEnabled({ appOid: i.authIntent.appOid });
+
     return await withTransaction(async tdb => {
       let step = await tdb.authIntentStep.create({
         data: {
@@ -445,6 +476,13 @@ class AuthServiceImpl {
 
   async createAuthIntentCode(d: { step: AuthIntentStep }) {
     if (!d.step.email) throw new Error('Invalid step for code sending');
+
+    let authIntent = await db.authIntent.findUnique({
+      where: { oid: d.step.authIntentOid }
+    });
+    if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
+
+    await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
 
     await withTransaction(async tdb => {
       let code = await tdb.authIntentCode.create({
@@ -485,6 +523,8 @@ class AuthServiceImpl {
   }
 
   async resendAuthIntentCode(d: { authIntent: AuthIntent; step: AuthIntentStep }) {
+    await this.ensureEmailAuthEnabled({ appOid: d.authIntent.appOid });
+
     let codes = await db.authIntentCode.findMany({
       where: { authIntentOid: d.authIntent.oid },
       orderBy: { createdAt: 'desc' }
@@ -512,6 +552,13 @@ class AuthServiceImpl {
     step: AuthIntentStep;
     input: { type: 'email_code'; code: string };
   }) {
+    let authIntent = await db.authIntent.findUnique({
+      where: { oid: d.step.authIntentOid }
+    });
+    if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
+
+    await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
+
     if (d.step.type != 'email_code' || d.input.type != 'email_code') {
       throw new ServiceError(forbiddenError({ message: 'Invalid step type' }));
     }
@@ -611,6 +658,10 @@ class AuthServiceImpl {
     };
     app: App;
   }) {
+    if (d.authIntent.type == 'email_code') {
+      await this.ensureEmailAuthEnabled({ app: d.app });
+    }
+
     if (!d.authIntent.verifiedAt || d.authIntent.userOid) {
       throw new ServiceError(forbiddenError({ message: 'Invalid auth intent state' }));
     }
@@ -714,6 +765,10 @@ class AuthServiceImpl {
   }
 
   async completeAuthIntent(d: { authIntent: AuthIntent; app: App }) {
+    if (d.authIntent.type == 'email_code') {
+      await this.ensureEmailAuthEnabled({ app: d.app });
+    }
+
     if (
       (turnstileVerifier.enabled && !d.authIntent.captchaVerifiedAt) ||
       !d.authIntent.verifiedAt ||

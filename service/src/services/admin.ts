@@ -92,6 +92,8 @@ class AdminServiceImpl {
     defaultRedirectUrl: string;
     slug?: string;
     redirectDomains?: string[];
+    isSessionless?: boolean;
+    disableEmailAuth?: boolean;
   }) {
     let redirectDomains =
       d.redirectDomains !== undefined ? normalizeRedirectDomains(d.redirectDomains) : [];
@@ -102,6 +104,8 @@ class AdminServiceImpl {
           ...getId('app'),
           clientId: await ID.generateId('app_clientId'),
           slug: d.slug || null,
+          isSessionless: d.isSessionless ?? false,
+          disableEmailAuth: d.disableEmailAuth ?? false,
           defaultRedirectUrl: d.defaultRedirectUrl,
           redirectDomains
         }
@@ -130,6 +134,8 @@ class AdminServiceImpl {
     defaultRedirectUrl: string;
     slug: string;
     redirectDomains?: string[];
+    isSessionless?: boolean;
+    disableEmailAuth?: boolean;
   }) {
     let existingApp = await db.app.findUnique({
       where: { slug: d.slug },
@@ -142,7 +148,9 @@ class AdminServiceImpl {
       return await this.createApp({
         defaultRedirectUrl: d.defaultRedirectUrl,
         slug: d.slug,
-        redirectDomains: d.redirectDomains
+        redirectDomains: d.redirectDomains,
+        isSessionless: d.isSessionless,
+        disableEmailAuth: d.disableEmailAuth
       });
     } catch (e: any) {
       if (e.code !== 'P2002') {
@@ -161,11 +169,24 @@ class AdminServiceImpl {
 
     return await this.updateApp({
       app: existingApp,
-      input: { redirectDomains: d.redirectDomains, slug: d.slug }
+      input: {
+        redirectDomains: d.redirectDomains,
+        slug: d.slug,
+        isSessionless: d.isSessionless,
+        disableEmailAuth: d.disableEmailAuth
+      }
     });
   }
 
-  async updateApp(d: { app: App; input: { slug?: string; redirectDomains?: string[] } }) {
+  async updateApp(d: {
+    app: App;
+    input: {
+      slug?: string;
+      redirectDomains?: string[];
+      isSessionless?: boolean;
+      disableEmailAuth?: boolean;
+    };
+  }) {
     let redirectDomains =
       d.input.redirectDomains !== undefined
         ? normalizeRedirectDomains(d.input.redirectDomains)
@@ -175,6 +196,10 @@ class AdminServiceImpl {
       where: { oid: d.app.oid },
       data: {
         slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
+        isSessionless:
+          d.input.isSessionless !== undefined ? d.input.isSessionless : undefined,
+        disableEmailAuth:
+          d.input.disableEmailAuth !== undefined ? d.input.disableEmailAuth : undefined,
         redirectDomains
       },
       include: {

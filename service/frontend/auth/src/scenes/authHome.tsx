@@ -187,6 +187,7 @@ export let AuthHomeScene = ({
   let hasEmailOption = options.some(o => o.type === 'email');
   let hasOAuthOptions = options.some(o => o.type.startsWith('oauth.'));
   let ssoOptions = options.filter(o => o.type.startsWith('sso.'));
+  let hasAlternativeOptions = hasOAuthOptions || ssoOptions.length > 0;
 
   let lines: React.ReactNode[] = [];
 
@@ -348,8 +349,16 @@ export let AuthHomeScene = ({
       <Text color="gray600" weight="medium" size="2">
         {
           {
-            login: `Welcome back! Enter your email to continue.`,
-            signup: `Nice to meet you! Enter your email to get started.`,
+            login: hasEmailOption
+              ? `Welcome back! Enter your email to continue.`
+              : hasAlternativeOptions
+                ? `Welcome back! Choose a sign-in method to continue.`
+                : `Welcome back! No sign-in methods are currently available.`,
+            signup: hasEmailOption
+              ? `Nice to meet you! Enter your email to get started.`
+              : hasAlternativeOptions
+                ? `Nice to meet you! Choose a sign-in method to get started.`
+                : `No sign-in methods are currently available for sign up.`,
             switch: `Choose the account you'd like to continue with.`
           }[type]
         }
