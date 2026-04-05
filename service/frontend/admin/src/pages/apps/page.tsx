@@ -1,12 +1,5 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import {
-  Button,
-  Checkbox,
-  Dialog,
-  Input,
-  showModal,
-  Spacer
-} from '@metorial-io/ui';
+import { Button, Checkbox, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +24,13 @@ export let AppsPage = () => {
             setSearch(formData.get('search') as string);
           }}
         >
-          <Input label="Search" hideLabel placeholder="Search" name="search" defaultValue={search} />
+          <Input
+            label="Search"
+            hideLabel
+            placeholder="Search"
+            name="search"
+            defaultValue={search}
+          />
         </form>
 
         <Button
@@ -88,9 +87,7 @@ export let AppsPage = () => {
 
                     <Checkbox
                       checked={form.values.isSessionless}
-                      onChange={e =>
-                        form.setFieldValue('isSessionless', e.target.checked)
-                      }
+                      onCheckedChange={v => form.setFieldValue('isSessionless', v)}
                       label="Sessionless app"
                     />
 
@@ -98,9 +95,7 @@ export let AppsPage = () => {
 
                     <Checkbox
                       checked={form.values.disableEmailAuth}
-                      onChange={e =>
-                        form.setFieldValue('disableEmailAuth', e.target.checked)
-                      }
+                      onCheckedChange={v => form.setFieldValue('disableEmailAuth', v)}
                       label="Disable email authentication"
                     />
 
@@ -133,7 +128,9 @@ export let AppsPage = () => {
             app.counts.users,
             app.counts.tenants,
             new Date(app.createdAt).toLocaleDateString('de-at'),
-            <Button as="span" size="1">View</Button>
+            <Button as="span" size="1">
+              View
+            </Button>
           ],
           href: `/apps/${app.id}`
         }))}
