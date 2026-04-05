@@ -59,7 +59,7 @@ export let ssoController = internalApp.controller({
           hideInUI: input.hideInUI
         }
       });
-      return ssoTenantPresenter({ ...tenant, _count: { connections: 0 } });
+      return ssoTenantPresenter(tenant);
     }),
 
   updateTenant: internalApp
@@ -82,7 +82,7 @@ export let ssoController = internalApp.controller({
           hideInUI: input.hideInUI
         }
       });
-      return ssoTenantPresenter({ ...updatedTenant, _count: { connections: 0 } });
+      return ssoTenantPresenter(updatedTenant);
     }),
 
   createSetup: internalApp
