@@ -99,8 +99,6 @@ class AuthServiceImpl {
     captchaToken?: string;
     app: App;
   }) {
-    await this.ensureEmailAuthEnabled({ app: d.app });
-
     if (d.captchaToken && !(await turnstileVerifier.verify({ token: d.captchaToken }))) {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
@@ -120,6 +118,8 @@ class AuthServiceImpl {
         ssoTenant
       };
     }
+
+    await this.ensureEmailAuthEnabled({ app: d.app });
 
     await authBlockService.registerBlock({ email, context: d.context });
 
