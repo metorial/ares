@@ -130,6 +130,19 @@ class SsoServiceImpl {
       throw new ServiceError(badRequestError({ message: 'Domain is required' }));
     }
 
+    let existing = await db.ssoTenantDomain.findFirst({
+      where: {
+        appOid: d.tenant.appOid,
+        domain
+      }
+    });
+    if (existing) {
+      if (existing.tenantOid === d.tenant.oid) return existing;
+      throw new ServiceError(
+        badRequestError({ message: 'Domain already exists for another SSO tenant' })
+      );
+    }
+
     return await db.ssoTenantDomain.create({
       data: {
         ...getId('ssoTenantDomain'),
