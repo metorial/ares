@@ -106,10 +106,23 @@ export let authenticationController = publicApp.controller({
           email,
           redirectUrl: input.redirectUrl,
           captchaToken: input.type == 'email' ? input.captchaToken : undefined,
-          app
+          app,
+          allowSsoRedirect: input.type == 'email'
         });
 
-        if (res.type == 'auth_attempt') {
+        if (res.type == 'hook') {
+          return {
+            type: 'hook' as const,
+            url: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso/${await tickets.encode({
+              type: 'sso',
+              appClientId: app.clientId,
+              deviceId: device.id,
+              ssoTenantId: res.ssoTenant.id,
+              redirectUrl: input.redirectUrl,
+              email: res.email
+            })}`
+          };
+        } else if (res.type == 'auth_attempt') {
           return {
             type: 'auth_attempt' as const,
             authAttempt: authAttemptPresenter(res.authAttempt)

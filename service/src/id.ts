@@ -33,6 +33,7 @@ export let ID = createIdGenerator({
 
   ssoTenant: idType.sorted('stn_'),
   ssoTenant_clientId: idType.key('sso_tenant_'),
+  ssoTenantDomain: idType.sorted('std_'),
   ssoConnection: idType.sorted('scn_'),
   ssoConnectionSetup: idType.sorted('scs_'),
   ssoConnectionSetup_clientSecret: idType.key('sso_setup_'),

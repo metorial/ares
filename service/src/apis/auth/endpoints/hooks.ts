@@ -135,7 +135,8 @@ export let authHooksApp = createHono()
         appClientId: v.string(),
         deviceId: v.string(),
         ssoTenantId: v.string(),
-        redirectUrl: v.string()
+        redirectUrl: v.string(),
+        email: v.optional(v.string())
       })
     );
 
@@ -152,7 +153,8 @@ export let authHooksApp = createHono()
       tenant,
       input: {
         redirectUri: `${env.service.ARES_AUTH_URL}/metorial-ares/hooks/sso-response`,
-        state: generateCustomId('sso_state', 50)
+        state: generateCustomId('sso_state', 50),
+        email: ticket.email
       }
     });
 

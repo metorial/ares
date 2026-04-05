@@ -4,7 +4,11 @@ import { env } from '../../../env';
 import { adminService } from '../../../services/admin';
 import { ssoService } from '../../../services/sso';
 import { internalApp } from '../_app';
-import { ssoConnectionPresenter, ssoTenantPresenter } from '../presenters';
+import {
+  ssoConnectionPresenter,
+  ssoTenantDomainPresenter,
+  ssoTenantPresenter
+} from '../presenters';
 
 export let ssoController = internalApp.controller({
   listTenants: internalApp
@@ -70,6 +74,42 @@ export let ssoController = internalApp.controller({
       return {
         setupUrl: `${env.service.ARES_SSO_URL}/sso/setup?clientSecret=${setup.clientSecret}`
       };
+    }),
+
+  addDomain: internalApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        domain: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let tenantDomain = await ssoService.addTenantDomain({
+        tenant,
+        input: {
+          domain: input.domain
+        }
+      });
+      return ssoTenantDomainPresenter(tenantDomain);
+    }),
+
+  removeDomain: internalApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        domain: v.string()
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      await ssoService.removeTenantDomain({
+        tenant,
+        domain: input.domain
+      });
+      return { success: true };
     }),
 
   listConnections: internalApp

@@ -17,6 +17,7 @@ model SsoTenant {
   metadata Json?
 
   isGlobal Boolean @default(false)
+  hideInUI Boolean @default(false)
 
   appOid BigInt
   app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
@@ -31,6 +32,25 @@ model SsoTenant {
   auths            SsoAuth[]
 
   identityProvider UserIdentityProvider?
+  ssoTenantDomain  SsoTenantDomain[]
+}
+
+model SsoTenantDomain {
+  oid BigInt @id
+  id  String @unique
+
+  domain String
+
+  tenantOid BigInt
+  tenant    SsoTenant @relation(fields: [tenantOid], references: [oid], onDelete: Cascade)
+
+  appOid BigInt
+  app    App    @relation(fields: [appOid], references: [oid], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([appOid, domain])
 }
 
 enum SsoConnectionProviderType {

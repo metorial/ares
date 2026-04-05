@@ -102,12 +102,21 @@ export let ssoAuthApp = createHono()
         client_id: connection.internalClientId,
         response_type: 'code',
         code_challenge: codeChallenge,
-        code_challenge_method: 'S256'
+        code_challenge_method: 'S256',
+        login_hint: auth.email ?? undefined
       });
       if (res.error) {
         throw new ServiceError(
           badRequestError({
             message: 'Authorization failed: ' + res.error
+          })
+        );
+      }
+
+      if (!res.redirect_url) {
+        throw new ServiceError(
+          badRequestError({
+            message: 'Authorization failed: No redirect URL provided by IdP'
           })
         );
       }

@@ -132,7 +132,12 @@ class UserServiceImpl {
       },
       include: {
         provider: {
-          include: { oauthProvider: true, ssoTenant: true }
+          include: {
+            oauthProvider: true,
+            ssoTenant: {
+              include: { ssoTenantDomain: true }
+            }
+          }
         },
         ssoUserProfile: { include: { user: true } }
       }

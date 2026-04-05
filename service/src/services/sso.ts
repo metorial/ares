@@ -13,6 +13,7 @@ class SsoServiceImpl {
       name: string;
       metadata?: Record<string, any>;
       externalId?: string;
+      hideInUI?: boolean;
     };
   }) {
     return await db.ssoTenant.create({
@@ -21,8 +22,9 @@ class SsoServiceImpl {
         clientId: await ID.generateId('ssoTenant_clientId'),
         appOid: d.app.oid,
         name: d.input.name,
-        metadata: d.input.metadata ?? undefined,
-        externalId: d.input.externalId ?? null
+        metadata: d.input.metadata,
+        externalId: d.input.externalId,
+        hideInUI: !!d.input.hideInUI
       }
     });
   }
@@ -38,9 +40,9 @@ class SsoServiceImpl {
     return await db.ssoTenant.update({
       where: { oid: d.tenant.oid },
       data: {
-        name: d.input.name ?? undefined,
-        metadata: d.input.metadata ?? undefined,
-        externalId: d.input.externalId ?? undefined
+        name: d.input.name,
+        metadata: d.input.metadata,
+        externalId: d.input.externalId
       }
     });
   }
@@ -48,7 +50,10 @@ class SsoServiceImpl {
   async getTenantById(d: { tenantId: string }) {
     let tenant = await db.ssoTenant.findUnique({
       where: { id: d.tenantId },
-      include: { _count: { select: { connections: true } } }
+      include: {
+        _count: { select: { connections: true } },
+        ssoTenantDomain: true
+      }
     });
     if (!tenant) throw new ServiceError(notFoundError('sso.tenant'));
     return tenant;
@@ -67,7 +72,10 @@ class SsoServiceImpl {
           await db.ssoTenant.findMany({
             ...opts,
             where: { appOid: d.app.oid },
-            include: { _count: { select: { connections: true } } }
+            include: {
+              _count: { select: { connections: true } },
+              ssoTenantDomain: true
+            }
           })
       )
     );
@@ -82,7 +90,8 @@ class SsoServiceImpl {
             where: { isGlobal: true },
             include: {
               _count: { select: { connections: true } },
-              app: { select: { id: true, clientId: true } }
+              app: { select: { id: true, clientId: true } },
+              ssoTenantDomain: true
             }
           })
       )
@@ -93,8 +102,66 @@ class SsoServiceImpl {
     return await db.ssoTenant.update({
       where: { oid: d.tenant.oid },
       data: { isGlobal: d.isGlobal },
-      include: { _count: { select: { connections: true } } }
+      include: {
+        _count: { select: { connections: true } },
+        ssoTenantDomain: true
+      }
     });
+  }
+
+  async addTenantDomain(d: {
+    tenant: SsoTenant;
+    input: {
+      domain: string;
+    };
+  }) {
+    let domain = d.input.domain.trim().toLowerCase();
+    if (!domain) {
+      throw new ServiceError(badRequestError({ message: 'Domain is required' }));
+    }
+
+    return await db.ssoTenantDomain.create({
+      data: {
+        ...getId('ssoTenantDomain'),
+        domain,
+        tenantOid: d.tenant.oid,
+        appOid: d.tenant.appOid
+      }
+    });
+  }
+
+  async removeTenantDomain(d: { tenant: SsoTenant; domain: string }) {
+    let domain = d.domain.trim().toLowerCase();
+
+    let tenantDomain = await db.ssoTenantDomain.findFirst({
+      where: {
+        tenantOid: d.tenant.oid,
+        appOid: d.tenant.appOid,
+        domain
+      }
+    });
+    if (!tenantDomain) throw new ServiceError(notFoundError('sso.tenant_domain'));
+
+    await db.ssoTenantDomain.delete({ where: { oid: tenantDomain.oid } });
+
+    return tenantDomain;
+  }
+
+  async getTenantByDomain(d: { app: App; domain: string }) {
+    let tenantDomain = await db.ssoTenantDomain.findFirst({
+      where: {
+        appOid: d.app.oid,
+        domain: d.domain.trim().toLowerCase(),
+        tenant: {
+          status: 'completed'
+        }
+      },
+      include: {
+        tenant: true
+      }
+    });
+
+    return tenantDomain?.tenant ?? null;
   }
 
   async createSamlConnection(d: {

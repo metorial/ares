@@ -31,5 +31,5 @@ model App {
   auditLogs              AuditLog[]
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
-  ssoTenantDomains       SsoTenantDomains[]
+  ssoTenantDomain        SsoTenantDomain[]
 }

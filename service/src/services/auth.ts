@@ -29,6 +29,7 @@ import { accessGroupService } from './accessGroup';
 import { auditLogService } from './auditLog';
 import { authBlockService } from './authBlock';
 import { deviceService } from './device';
+import { ssoService } from './sso';
 import { userService } from './user';
 
 class AuthServiceImpl {
@@ -76,6 +77,7 @@ class AuthServiceImpl {
     let ssoTenants = await db.ssoTenant.findMany({
       where: {
         status: 'completed',
+        hideInUI: false,
         OR: [{ appOid: d.app.oid }, { isGlobal: true }]
       }
     });
@@ -96,6 +98,7 @@ class AuthServiceImpl {
     device: AuthDevice;
     captchaToken?: string;
     app: App;
+    allowSsoRedirect?: boolean;
   }) {
     await this.ensureEmailAuthEnabled({ app: d.app });
 
@@ -103,7 +106,23 @@ class AuthServiceImpl {
       throw new ServiceError(forbiddenError({ message: 'Invalid captcha token' }));
     }
 
-    let email = parseEmail(d.email).email;
+    let { email, domain } = parseEmail(d.email);
+
+    if (d.allowSsoRedirect !== false) {
+      let ssoTenant = await ssoService.getTenantByDomain({
+        app: d.app,
+        domain
+      });
+
+      if (ssoTenant) {
+        return {
+          type: 'hook' as const,
+          authType: 'sso' as const,
+          email,
+          ssoTenant
+        };
+      }
+    }
 
     await authBlockService.registerBlock({ email, context: d.context });
 
@@ -477,21 +496,24 @@ class AuthServiceImpl {
   async createAuthIntentCode(d: { step: AuthIntentStep }) {
     if (!d.step.email) throw new Error('Invalid step for code sending');
 
-    let authIntent = await db.authIntent.findUnique({
-      where: { oid: d.step.authIntentOid }
-    });
-    if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
-
-    await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
-
     await withTransaction(async tdb => {
+      let authIntent = await db.authIntent.findUnique({
+        where: { oid: d.step.authIntentOid }
+      });
+      if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
+
+      await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
+
       let code = await tdb.authIntentCode.create({
         data: {
           ...getId('authIntentCode'),
           authIntentOid: d.step.authIntentOid,
           stepOid: d.step.oid,
           email: d.step.email!,
-          code: process.env.NODE_ENV == 'development' ? '111111' : generateCode(6)
+          code:
+            process.env.NODE_ENV == 'development' || process.env.METORIAL_ENV == 'development'
+              ? '111111'
+              : generateCode(6)
         }
       });
 

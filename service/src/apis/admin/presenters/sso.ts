@@ -1,8 +1,13 @@
-import type { SsoConnection, SsoTenant } from '../../../../prisma/generated/client';
+import type {
+  SsoConnection,
+  SsoTenant,
+  SsoTenantDomain
+} from '../../../../prisma/generated/client';
 
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
+    ssoTenantDomain: SsoTenantDomain[];
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -17,6 +22,13 @@ export let ssoTenantPresenter = (
   counts: {
     connections: tenant._count?.connections ?? 0
   },
+
+  domains: tenant.ssoTenantDomain.map(domain => ({
+    id: domain.id,
+    domain: domain.domain,
+    createdAt: domain.createdAt,
+    updatedAt: domain.updatedAt
+  })),
 
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt
