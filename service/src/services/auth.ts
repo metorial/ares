@@ -470,9 +470,12 @@ class AuthServiceImpl {
     });
   }
 
-  async createAuthIntentStep(
-    i: { type: 'email_code'; email: string } & { authIntent: AuthIntent; index: number }
-  ) {
+  async createAuthIntentStep(i: {
+    type: 'email_code';
+    email: string;
+    authIntent: AuthIntent;
+    index: number;
+  }) {
     await this.ensureEmailAuthEnabled({ appOid: i.authIntent.appOid });
 
     return await withTransaction(async tdb => {
@@ -493,14 +496,7 @@ class AuthServiceImpl {
   async createAuthIntentCode(d: { step: AuthIntentStep }) {
     if (!d.step.email) throw new Error('Invalid step for code sending');
 
-    await withTransaction(async tdb => {
-      let authIntent = await db.authIntent.findUnique({
-        where: { oid: d.step.authIntentOid }
-      });
-      if (!authIntent) throw new ServiceError(notFoundError('auth_intent'));
-
-      await this.ensureEmailAuthEnabled({ appOid: authIntent.appOid });
-
+    return await withTransaction(async tdb => {
       let code = await tdb.authIntentCode.create({
         data: {
           ...getId('authIntentCode'),
