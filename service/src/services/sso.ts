@@ -25,6 +25,10 @@ class SsoServiceImpl {
         metadata: d.input.metadata,
         externalId: d.input.externalId,
         hideInUI: !!d.input.hideInUI
+      },
+      include: {
+        _count: { select: { connections: true } },
+        ssoTenantDomain: true
       }
     });
   }
@@ -35,6 +39,7 @@ class SsoServiceImpl {
       name?: string;
       metadata?: Record<string, any>;
       externalId?: string;
+      hideInUI?: boolean;
     };
   }) {
     return await db.ssoTenant.update({
@@ -42,7 +47,12 @@ class SsoServiceImpl {
       data: {
         name: d.input.name,
         metadata: d.input.metadata,
-        externalId: d.input.externalId
+        externalId: d.input.externalId,
+        hideInUI: d.input.hideInUI
+      },
+      include: {
+        _count: { select: { connections: true } },
+        ssoTenantDomain: true
       }
     });
   }
@@ -153,7 +163,10 @@ class SsoServiceImpl {
         appOid: d.app.oid,
         domain: d.domain.trim().toLowerCase(),
         tenant: {
-          status: 'completed'
+          status: 'completed',
+          connections: {
+            some: {}
+          }
         }
       },
       include: {

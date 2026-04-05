@@ -98,7 +98,6 @@ class AuthServiceImpl {
     device: AuthDevice;
     captchaToken?: string;
     app: App;
-    allowSsoRedirect?: boolean;
   }) {
     await this.ensureEmailAuthEnabled({ app: d.app });
 
@@ -108,20 +107,18 @@ class AuthServiceImpl {
 
     let { email, domain } = parseEmail(d.email);
 
-    if (d.allowSsoRedirect !== false) {
-      let ssoTenant = await ssoService.getTenantByDomain({
-        app: d.app,
-        domain
-      });
+    let ssoTenant = await ssoService.getTenantByDomain({
+      app: d.app,
+      domain
+    });
 
-      if (ssoTenant) {
-        return {
-          type: 'hook' as const,
-          authType: 'sso' as const,
-          email,
-          ssoTenant
-        };
-      }
+    if (ssoTenant) {
+      return {
+        type: 'hook' as const,
+        authType: 'sso' as const,
+        email,
+        ssoTenant
+      };
     }
 
     await authBlockService.registerBlock({ email, context: d.context });

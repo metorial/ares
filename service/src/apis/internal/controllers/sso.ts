@@ -44,16 +44,45 @@ export let ssoController = internalApp.controller({
     .input(
       v.object({
         appId: v.string(),
-        name: v.string()
+        name: v.string(),
+        externalId: v.optional(v.string()),
+        hideInUI: v.optional(v.boolean())
       })
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.appId });
       let tenant = await ssoService.createTenant({
         app,
-        input: { name: input.name }
+        input: {
+          name: input.name,
+          externalId: input.externalId,
+          hideInUI: input.hideInUI
+        }
       });
       return ssoTenantPresenter({ ...tenant, _count: { connections: 0 } });
+    }),
+
+  updateTenant: internalApp
+    .handler()
+    .input(
+      v.object({
+        tenantId: v.string(),
+        name: v.optional(v.string()),
+        externalId: v.optional(v.string()),
+        hideInUI: v.optional(v.boolean())
+      })
+    )
+    .do(async ({ input }) => {
+      let tenant = await ssoService.getTenantById({ tenantId: input.tenantId });
+      let updatedTenant = await ssoService.updateTenant({
+        tenant,
+        input: {
+          name: input.name,
+          externalId: input.externalId,
+          hideInUI: input.hideInUI
+        }
+      });
+      return ssoTenantPresenter({ ...updatedTenant, _count: { connections: 0 } });
     }),
 
   createSetup: internalApp

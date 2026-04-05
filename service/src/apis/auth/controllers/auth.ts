@@ -106,8 +106,7 @@ export let authenticationController = publicApp.controller({
           email,
           redirectUrl: input.redirectUrl,
           captchaToken: input.type == 'email' ? input.captchaToken : undefined,
-          app,
-          allowSsoRedirect: input.type == 'email'
+          app
         });
 
         if (res.type == 'hook') {

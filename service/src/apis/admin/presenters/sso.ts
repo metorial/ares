@@ -7,7 +7,7 @@ import type {
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
-    ssoTenantDomain: SsoTenantDomain[];
+    ssoTenantDomain?: SsoTenantDomain[];
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -23,7 +23,7 @@ export let ssoTenantPresenter = (
     connections: tenant._count?.connections ?? 0
   },
 
-  domains: tenant.ssoTenantDomain.map(domain => ({
+  domains: (tenant.ssoTenantDomain ?? []).map(domain => ({
     id: domain.id,
     domain: domain.domain,
     createdAt: domain.createdAt,

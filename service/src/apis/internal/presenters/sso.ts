@@ -7,7 +7,7 @@ import type {
 export let ssoTenantPresenter = (
   tenant: SsoTenant & {
     _count?: { connections?: number };
-    ssoTenantDomain?: SsoTenantDomain[];
+    ssoTenantDomain: SsoTenantDomain[];
   }
 ) => ({
   object: 'ares#ssoTenant' as const,
@@ -18,12 +18,13 @@ export let ssoTenantPresenter = (
   clientId: tenant.clientId,
   externalId: tenant.externalId,
   isGlobal: tenant.isGlobal,
+  hideInUI: tenant.hideInUI,
 
   counts: {
     connections: tenant._count?.connections ?? 0
   },
 
-  domains: (tenant.ssoTenantDomain ?? []).map(ssoTenantDomainPresenter),
+  domains: tenant.ssoTenantDomain.map(ssoTenantDomainPresenter),
 
   createdAt: tenant.createdAt,
   updatedAt: tenant.updatedAt
