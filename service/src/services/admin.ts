@@ -11,6 +11,7 @@ import type { Admin, App } from '../../prisma/generated/client';
 import { db, withTransaction } from '../db';
 import { getId, ID } from '../id';
 import type { Context } from '../lib/context';
+import { normalizeRedirectDomains } from '../lib/redirectDomains';
 
 class AdminServiceImpl {
   async createAdminSession(d: { admin: Admin; context: Context }) {
@@ -92,6 +93,9 @@ class AdminServiceImpl {
     slug?: string;
     redirectDomains?: string[];
   }) {
+    let redirectDomains =
+      d.redirectDomains !== undefined ? normalizeRedirectDomains(d.redirectDomains) : [];
+
     return withTransaction(async db => {
       let app = await db.app.create({
         data: {
@@ -99,7 +103,7 @@ class AdminServiceImpl {
           clientId: await ID.generateId('app_clientId'),
           slug: d.slug || null,
           defaultRedirectUrl: d.defaultRedirectUrl,
-          redirectDomains: d.redirectDomains ?? []
+          redirectDomains
         }
       });
 
@@ -162,12 +166,16 @@ class AdminServiceImpl {
   }
 
   async updateApp(d: { app: App; input: { slug?: string; redirectDomains?: string[] } }) {
+    let redirectDomains =
+      d.input.redirectDomains !== undefined
+        ? normalizeRedirectDomains(d.input.redirectDomains)
+        : undefined;
+
     return await db.app.update({
       where: { oid: d.app.oid },
       data: {
         slug: d.input.slug !== undefined ? d.input.slug || null : undefined,
-        redirectDomains:
-          d.input.redirectDomains !== undefined ? d.input.redirectDomains : undefined
+        redirectDomains
       },
       include: {
         defaultTenant: true,
