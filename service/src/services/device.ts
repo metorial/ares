@@ -113,30 +113,30 @@ class DeviceService {
       }
 
       let [device, user] = await Promise.all([
-        db.authDevice.findUnique({
+        db.authDevice.findUniqueOrThrow({
           where: { oid: d.authAttempt.deviceOid }
         }),
-        db.user.findUnique({
+        db.user.findUniqueOrThrow({
           where: { oid: d.authAttempt.userOid },
           include: { app: true }
         })
       ]);
 
       let existingSession = await this.getSessionForLoggedInUser({
-        user: user!,
-        device: device!
+        user,
+        device
       });
       if (existingSession) return existingSession;
 
       await db.user.updateMany({
-        where: { oid: user!.oid },
+        where: { oid: user.oid },
         data: { lastLoginAt: new Date() }
       });
 
       auditLogService.log({
-        appOid: user!.appOid,
+        appOid: user.appOid,
         type: 'login',
-        userOid: user!.oid,
+        userOid: user.oid,
         ip: d.authAttempt.ip,
         ua: d.authAttempt.ua
       });
@@ -144,10 +144,10 @@ class DeviceService {
       return await db.authDeviceUserSession.create({
         data: {
           ...getId('authDeviceUserSession'),
-          userOid: user!.oid,
-          deviceOid: device!.oid,
-          appOid: user!.appOid,
-          expiresAt: user?.app.isSessionless
+          userOid: user.oid,
+          deviceOid: device.oid,
+          appOid: user.appOid,
+          expiresAt: user.app.isSessionless
             ? addMinutes(new Date(), 1)
             : addWeeks(new Date(), 2)
         }
