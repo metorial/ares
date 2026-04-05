@@ -318,10 +318,16 @@ class DeviceService {
 
       if (d.session) {
         if (bumpSession) {
-          await db.authDeviceUserSession.updateMany({
-            where: { id: d.session.id },
-            data: { expiresAt: addWeeks(new Date(), 2) }
+          let app = await db.app.findUnique({
+            where: { oid: d.session.appOid }
           });
+
+          if (!app?.isSessionless) {
+            await db.authDeviceUserSession.updateMany({
+              where: { id: d.session.id },
+              data: { expiresAt: addWeeks(new Date(), 2) }
+            });
+          }
         }
 
         if (updateSessionLastActiveAt) {
