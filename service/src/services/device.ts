@@ -1,6 +1,6 @@
 import { ServiceError, unauthorizedError } from '@lowerdeck/error';
 import { generatePlainId } from '@lowerdeck/id';
-import { addWeeks } from 'date-fns';
+import { addMinutes, addWeeks } from 'date-fns';
 import type {
   App,
   AuthAttempt,
@@ -117,7 +117,8 @@ class DeviceService {
           where: { oid: d.authAttempt.deviceOid }
         }),
         db.user.findUnique({
-          where: { oid: d.authAttempt.userOid }
+          where: { oid: d.authAttempt.userOid },
+          include: { app: true }
         })
       ]);
 
@@ -146,7 +147,9 @@ class DeviceService {
           userOid: user!.oid,
           deviceOid: device!.oid,
           appOid: user!.appOid,
-          expiresAt: addWeeks(new Date(), 2)
+          expiresAt: user?.app.isSessionless
+            ? addMinutes(new Date(), 1)
+            : addWeeks(new Date(), 2)
         }
       });
     });
@@ -217,7 +220,7 @@ class DeviceService {
   async listUserSessions(d: { user: User }) {
     let sessions = await db.authDeviceUserSession.findMany({
       where: {
-        userOid: d.user.oid,
+        userOid: d.user.oid
       },
       include: {
         device: true

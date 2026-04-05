@@ -7,6 +7,9 @@ model App {
 
   hasTerms Boolean @default(true)
 
+  isSessionless    Boolean @default(false)
+  disableEmailAuth Boolean @default(false)
+
   defaultRedirectUrl String
   redirectDomains    String[] @default([])
 
@@ -28,4 +31,5 @@ model App {
   auditLogs              AuditLog[]
   accessGroups           AccessGroup[]
   accessGroupAssignments AccessGroupAssignment[]
+  ssoTenantDomains       SsoTenantDomains[]
 }
