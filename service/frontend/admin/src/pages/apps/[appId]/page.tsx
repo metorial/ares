@@ -2,6 +2,7 @@ import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks'
 import {
   Badge,
   Button,
+  Checkbox,
   Datalist,
   Dialog,
   Input,
@@ -58,6 +59,11 @@ export let AppPage = () => {
           { label: 'Client ID', value: app.data.clientId },
           { label: 'Slug', value: app.data.slug ?? '-' },
           { label: 'Has Terms', value: app.data.hasTerms ? 'Yes' : 'No' },
+          { label: 'Sessionless', value: app.data.isSessionless ? 'Yes' : 'No' },
+          {
+            label: 'Email Authentication',
+            value: app.data.disableEmailAuth ? 'Disabled' : 'Enabled'
+          },
           { label: 'Default Redirect URL', value: app.data.defaultRedirectUrl ?? '-' },
           { label: 'Default Tenant', value: app.data.defaultTenant?.clientId ?? '-' },
           { label: 'Users', value: app.data.counts.users },
@@ -72,6 +78,8 @@ export let AppPage = () => {
           }
         ]}
       />
+
+      <AppSettingsSection appId={appId!} app={app} />
 
       <RedirectDomainsSection appId={appId!} app={app} />
 
@@ -575,6 +583,101 @@ let RedirectDomainsSection = ({ appId, app }: { appId: string; app: any }) => {
           </Button>
         ])}
       />
+    </>
+  );
+};
+
+let AppSettingsSection = ({ appId, app }: { appId: string; app: any }) => {
+  return (
+    <>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          marginTop: 30,
+          marginBottom: 10
+        }}
+      >
+        <Title weight="strong" as="h2" size="4">
+          Authentication Settings
+        </Title>
+
+        <Button
+          size="1"
+          onClick={() =>
+            showModal(({ dialogProps, close }) => {
+              let update = useMutation(adminClient.app.update);
+
+              let form = useForm({
+                initialValues: {
+                  isSessionless: Boolean(app.data.isSessionless),
+                  disableEmailAuth: Boolean(app.data.disableEmailAuth)
+                },
+                onSubmit: async values => {
+                  let [res] = await update.mutate({
+                    id: appId,
+                    isSessionless: values.isSessionless,
+                    disableEmailAuth: values.disableEmailAuth
+                  });
+                  if (res) {
+                    close();
+                    app.refetch();
+                  }
+                },
+                schema: yup =>
+                  yup.object({
+                    isSessionless: yup.boolean(),
+                    disableEmailAuth: yup.boolean()
+                  }) as any
+              });
+
+              return (
+                <Dialog.Wrapper {...dialogProps}>
+                  <Dialog.Title>Edit Authentication Settings</Dialog.Title>
+
+                  <form onSubmit={form.handleSubmit}>
+                    <Checkbox
+                      checked={form.values.isSessionless}
+                      onChange={e =>
+                        form.setFieldValue('isSessionless', e.target.checked)
+                      }
+                      label="Sessionless app"
+                    />
+
+                    <Spacer size={15} />
+
+                    <Checkbox
+                      checked={form.values.disableEmailAuth}
+                      onChange={e =>
+                        form.setFieldValue('disableEmailAuth', e.target.checked)
+                      }
+                      label="Disable email authentication"
+                    />
+
+                    <Spacer size={15} />
+
+                    <Button
+                      type="submit"
+                      loading={update.isLoading}
+                      success={update.isSuccess}
+                    >
+                      Save
+                    </Button>
+                    <update.RenderError />
+                  </form>
+                </Dialog.Wrapper>
+              );
+            })
+          }
+        >
+          Edit
+        </Button>
+      </div>
+
+      <p style={{ fontSize: 13, color: '#888', marginBottom: 10 }}>
+        Control whether this app uses sessions and whether email-based sign-in is available.
+      </p>
     </>
   );
 };

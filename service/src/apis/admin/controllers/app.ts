@@ -32,7 +32,9 @@ export let appController = adminApp.controller({
       v.object({
         defaultRedirectUrl: v.string(),
         slug: v.optional(v.string()),
-        redirectDomains: v.optional(v.array(v.string()))
+        redirectDomains: v.optional(v.array(v.string())),
+        isSessionless: v.optional(v.boolean()),
+        disableEmailAuth: v.optional(v.boolean())
       })
     )
     .do(async ({ input }) => {
@@ -46,14 +48,21 @@ export let appController = adminApp.controller({
       v.object({
         id: v.string(),
         slug: v.optional(v.string()),
-        redirectDomains: v.optional(v.array(v.string()))
+        redirectDomains: v.optional(v.array(v.string())),
+        isSessionless: v.optional(v.boolean()),
+        disableEmailAuth: v.optional(v.boolean())
       })
     )
     .do(async ({ input }) => {
       let app = await adminService.getApp({ appId: input.id });
       let updated = await adminService.updateApp({
         app,
-        input: { slug: input.slug, redirectDomains: input.redirectDomains }
+        input: {
+          slug: input.slug,
+          redirectDomains: input.redirectDomains,
+          isSessionless: input.isSessionless,
+          disableEmailAuth: input.disableEmailAuth
+        }
       });
       return appPresenter(updated);
     })

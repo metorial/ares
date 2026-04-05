@@ -1,5 +1,12 @@
 import { renderWithLoader, useForm, useMutation } from '@metorial-io/data-hooks';
-import { Button, Dialog, Input, showModal, Spacer } from '@metorial-io/ui';
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  Input,
+  showModal,
+  Spacer
+} from '@metorial-io/ui';
 import { Table } from '@metorial-io/ui-product';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -36,12 +43,16 @@ export let AppsPage = () => {
               let form = useForm({
                 initialValues: {
                   defaultRedirectUrl: '',
-                  slug: ''
+                  slug: '',
+                  isSessionless: false,
+                  disableEmailAuth: false
                 },
                 onSubmit: async values => {
                   let [res] = await create.mutate({
                     defaultRedirectUrl: values.defaultRedirectUrl,
-                    slug: values.slug || undefined
+                    slug: values.slug || undefined,
+                    isSessionless: values.isSessionless,
+                    disableEmailAuth: values.disableEmailAuth
                   });
                   if (res) {
                     close();
@@ -51,7 +62,9 @@ export let AppsPage = () => {
                 schema: yup =>
                   yup.object({
                     defaultRedirectUrl: yup.string().url().required(),
-                    slug: yup.string()
+                    slug: yup.string(),
+                    isSessionless: yup.boolean(),
+                    disableEmailAuth: yup.boolean()
                   }) as any
               });
 
@@ -70,6 +83,26 @@ export let AppsPage = () => {
 
                     <Input label="Slug (optional)" {...form.getFieldProps('slug')} />
                     <form.RenderError field="slug" />
+
+                    <Spacer size={15} />
+
+                    <Checkbox
+                      checked={form.values.isSessionless}
+                      onChange={e =>
+                        form.setFieldValue('isSessionless', e.target.checked)
+                      }
+                      label="Sessionless app"
+                    />
+
+                    <Spacer size={15} />
+
+                    <Checkbox
+                      checked={form.values.disableEmailAuth}
+                      onChange={e =>
+                        form.setFieldValue('disableEmailAuth', e.target.checked)
+                      }
+                      label="Disable email authentication"
+                    />
 
                     <Spacer size={15} />
 
