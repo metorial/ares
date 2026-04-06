@@ -17,7 +17,7 @@ let adminServer = Bun.serve({
 });
 
 let ssoServer = Bun.serve({
-  fetch: withSecurityHeaders(ssoApi),
+  fetch: ssoApi,
   port: 52122
 });
 

@@ -1,6 +1,6 @@
 let cspDirectives = [
   `default-src 'self'`,
-  `script-src 'self' https://challenges.cloudflare.com`,
+  `script-src 'self' unsafe-inline https://challenges.cloudflare.com`,
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' *.metorial-cdn.com *.metorial.com *.metorial.net *.metorial.dev *.metorial-files.com metorial-files.com`,
   `font-src 'self' *.metorial-cdn.com`,
