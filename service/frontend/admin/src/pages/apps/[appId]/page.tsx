@@ -639,9 +639,7 @@ let AppSettingsSection = ({ appId, app }: { appId: string; app: any }) => {
                   <form onSubmit={form.handleSubmit}>
                     <Checkbox
                       checked={form.values.isSessionless}
-                      onChange={e =>
-                        form.setFieldValue('isSessionless', e.target.checked)
-                      }
+                      onCheckedChange={e => form.setFieldValue('isSessionless', e)}
                       label="Sessionless app"
                     />
 
@@ -649,9 +647,7 @@ let AppSettingsSection = ({ appId, app }: { appId: string; app: any }) => {
 
                     <Checkbox
                       checked={form.values.disableEmailAuth}
-                      onChange={e =>
-                        form.setFieldValue('disableEmailAuth', e.target.checked)
-                      }
+                      onCheckedChange={e => form.setFieldValue('disableEmailAuth', e)}
                       label="Disable email authentication"
                     />
 
@@ -708,6 +704,7 @@ let OAuthProviderActions = ({
       >
         {provider.enabled ? 'Disable' : 'Enable'}
       </Button>
+
       <Button
         size="1"
         variant="outline"
