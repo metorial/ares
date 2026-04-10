@@ -119,11 +119,19 @@ let CreateUserStep = ({
           label={
             <>
               I agree to the{' '}
-              <a href="/terms-of-service" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://metorial.com/legal/terms-of-service"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Terms of Service
               </a>{' '}
               and the{' '}
-              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+              <a
+                href="https://metorial.com/legal/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 Privacy Policy
               </a>
               .
