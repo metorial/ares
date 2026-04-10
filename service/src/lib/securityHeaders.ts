@@ -27,11 +27,14 @@ export let withSecurityHeaders = (
   fetch: (req: Request, server: any) => Response | Promise<Response>
 ): ((req: Request, server: any) => Promise<Response>) => {
   return async (req, server) => {
+    let url = new URL(req.url);
     let res = await fetch(req, server);
     let patched = new Response(res.body, res);
-    for (let [key, value] of Object.entries(headers)) {
-      patched.headers.set(key, value);
+
+    if (url.hostname.includes('.')) {
+      for (let [key, value] of Object.entries(headers)) patched.headers.set(key, value);
     }
+
     return patched;
   };
 };
