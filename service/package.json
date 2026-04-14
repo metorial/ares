@@ -72,7 +72,6 @@
     "@metorial-io/pages": "^1.0.0",
     "@metorial-io/ui": "^1.0.0",
     "@metorial-io/ui-product": "^1.0.0",
-    "@metorial-services/forge-client": "^1.0.3",
     "@metorial-services/relay-client": "^1.0.5",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
